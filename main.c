@@ -120,14 +120,18 @@ void salvarEstado(const char* filename, struct Estado* estado) {
     }
     for (int i = 0; i < FRUTAS; i++) {
         Vector2 pos = estado->posArmadilhas[i];
-        if (pos.x != 0 || pos.y != 0) {
+        if (verificarColisao(pos, estado->posJogador)) {
+            mapa[(int)(pos.y / QUAD_SIZE)][(int)(pos.x / QUAD_SIZE)] = 'K'; // 'K' indica jogador + armadilha
+        } else if (pos.x != 0 || pos.y != 0) {
             mapa[(int)(pos.y / QUAD_SIZE)][(int)(pos.x / QUAD_SIZE)] = 'A';
         }
     }
-    Vector2 pos = estado->posJogador;
-    mapa[(int)(pos.y / QUAD_SIZE)][(int)(pos.x / QUAD_SIZE)] = 'J';
-    pos = estado->posBase;
-    mapa[(int)(pos.y / QUAD_SIZE)][(int)(pos.x / QUAD_SIZE)] = 'S';
+    if (!verificarColisao(estado->posJogador, estado->posArmadilhas[0])) { // Se o jogador não estiver em uma armadilha
+        Vector2 pos = estado->posJogador;
+        mapa[(int)(pos.y / QUAD_SIZE)][(int)(pos.x / QUAD_SIZE)] = 'J';
+    }
+    Vector2 posBase = estado->posBase;
+    mapa[(int)(posBase.y / QUAD_SIZE)][(int)(posBase.x / QUAD_SIZE)] = 'S';
 
     // Escrever a matriz no arquivo
     for (int i = 0; i < ALTURA / QUAD_SIZE; i++) {
@@ -194,6 +198,10 @@ void carregarEstado(const char* filename, struct Estado* estado) {
                     break;
                 case 'A':
                     estado->posArmadilhas[estado->qtdArmadilhas++] = (Vector2){col * QUAD_SIZE, lin * QUAD_SIZE};
+                    break;
+                case 'K':
+                    estado->posArmadilhas[estado->qtdArmadilhas++] = (Vector2){col * QUAD_SIZE, lin * QUAD_SIZE};
+                    estado->posJogador = (Vector2){col * QUAD_SIZE, lin * QUAD_SIZE};
                     break;
             }
         }
