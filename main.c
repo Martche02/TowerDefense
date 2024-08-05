@@ -9,12 +9,12 @@
 #define QUAD_SIZE 20
 #define MAP_WIDTH (LARGURA / QUAD_SIZE)
 #define MAP_HEIGHT (ALTURA / QUAD_SIZE)
-#define MAX_MONSTROS 50
+#define MAX_MONSTROS 7
 #define MAX_FRUTAS 50
 #define MAX_PAREDES 200
 #define MAX_PORTAIS 20
 
-// DefiniÃ§Ã£o da estrutura Estado
+// Definição da estrutura Estado
 struct Estado {
     int vidas;
     bool vidaJogador;
@@ -23,7 +23,7 @@ struct Estado {
     int qtdPortais;
     int qtdParedes;
     Vector2 posMonstros[MAX_MONSTROS];
-    int indexMonstro[MAX_MONSTROS];  // Ãndice atual na trilha
+    int indexMonstro[MAX_MONSTROS];  // Índice atual na trilha
     Vector2 posFrutinhas[MAX_FRUTAS];
     Vector2 posPortais[MAX_PORTAIS];
     Vector2 posParedes[MAX_PAREDES];
@@ -39,138 +39,34 @@ struct Estado {
     int recursos;
 };
 
-// FunÃ§Ã£o para verificar colisÃ£o
+// Função para verificar colisão
 bool verificarColisao(Vector2 a, Vector2 b) {
     return (a.x == b.x && a.y == b.y);
 }
 
-// FunÃ§Ã£o para carregar o estado do jogo
-void carregarEstado(const char* filename, struct Estado* estado) {
-    FILE* file = fopen(filename, "r");
+// Função para carregar o estado do jogo
+void carregarEstado(char* filename, struct Estado* estado) {
+    FILE* file = fopen(filename, "r+b");
     if (!file) {
-        perror("Erro ao abrir arquivo de estado");
+        perror("Erro ao abrir arquivo para carregar");
         return;
     }
-
-    // Ler metadados
-    fscanf(file, "vidas:%d\n", &estado->vidas);
-    fscanf(file, "vidaJogador:%d\n", &estado->vidaJogador);
-    fscanf(file, "recursos:%d\n", &estado->recursos);
-    fscanf(file, "tempo:%d\n", &estado->tempo);
-    fscanf(file, "qtdMonstros:%d\n", &estado->qtdMonstros);
-    fscanf(file, "qtdFrutinhas:%d\n", &estado->qtdFrutinhas);
-    fscanf(file, "qtdPortais:%d\n", &estado->qtdPortais);
-    fscanf(file, "qtdParedes:%d\n", &estado->qtdParedes);
-    fscanf(file, "comprimentoTrilha:%d\n", &estado->comprimentoTrilha);
-
-    // Limpar posiÃ§Ãµes atuais
-    memset(estado->posMonstros, 0, sizeof(estado->posMonstros));
-    memset(estado->posFrutinhas, 0, sizeof(estado->posFrutinhas));
-    memset(estado->posPortais, 0, sizeof(estado->posPortais));
-    memset(estado->posParedes, 0, sizeof(estado->posParedes));
-    memset(estado->posArmadilhas, 0, sizeof(estado->posArmadilhas));
-
-    // Carregar trilha
-    for (int i = 0; i < estado->comprimentoTrilha; i++) {
-        fscanf(file, "%f,%f;", &estado->trilha[i].x, &estado->trilha[i].y);
-    }
-
-    // Carregar muros
-    for (int i = 0; i < estado->qtdParedes; i++) {
-        fscanf(file, "%f,%f;", &estado->posParedes[i].x, &estado->posParedes[i].y);
-    }
-
-    // Carregar portais
-    for (int i = 0; i < estado->qtdPortais; i++) {
-        fscanf(file, "%f,%f;", &estado->posPortais[i].x, &estado->posPortais[i].y);
-    }
-
-    // Carregar monstros
-    for (int i = 0; i < estado->qtdMonstros; i++) {
-        fscanf(file, "%f,%f;%d\n", &estado->posMonstros[i].x, &estado->posMonstros[i].y, &estado->indexMonstro[i]);
-    }
-
-    // Carregar frutinhas
-    for (int i = 0; i < estado->qtdFrutinhas; i++) {
-        fscanf(file, "%f,%f;", &estado->posFrutinhas[i].x, &estado->posFrutinhas[i].y);
-    }
-
-    // Carregar tempos de spawn
-    for (int i = 0; i < estado->qtdMonstros; i++) {
-        fscanf(file, "%d;", &estado->spawTimes[i]);
-    }
-
-    // Carregar posiÃ§Ã£o do jogador e da base
-    fscanf(file, "posJogador:%f,%f\n", &estado->posJogador.x, &estado->posJogador.y);
-    fscanf(file, "posBase:%f,%f\n", &estado->posBase.x, &estado->posBase.y);
-
+    fread(estado, sizeof(struct Estado), 1, file);
     fclose(file);
 }
-
-// FunÃ§Ã£o para salvar o estado do jogo
-void salvarEstado(const char* filename, struct Estado* estado) {
-    FILE* file = fopen(filename, "w");
+// Função para salvar o estado do jogo
+void salvarEstado(char* filename, struct Estado* estado) {
+    FILE* file = fopen(filename, "wb");
     if (!file) {
         perror("Erro ao abrir arquivo para salvar");
         return;
     }
-
-    // Salvar metadados
-    fprintf(file, "vidas:%d\n", estado->vidas);
-    fprintf(file, "vidaJogador:%d\n", estado->vidaJogador);
-    fprintf(file, "recursos:%d\n", estado->recursos);
-    fprintf(file, "tempo:%d\n", estado->tempo);
-    fprintf(file, "qtdMonstros:%d\n", estado->qtdMonstros);
-    fprintf(file, "qtdFrutinhas:%d\n", estado->qtdFrutinhas);
-    fprintf(file, "qtdPortais:%d\n", estado->qtdPortais);
-    fprintf(file, "qtdParedes:%d\n", estado->qtdParedes);
-    fprintf(file, "comprimentoTrilha:%d\n", estado->comprimentoTrilha);
-
-    // Salvar trilha
-    for (int i = 0; i < estado->comprimentoTrilha; i++) {
-        fprintf(file, "%f,%f;", estado->trilha[i].x, estado->trilha[i].y);
-    }
-    fprintf(file, "\n");
-
-    // Salvar muros
-    for (int i = 0; i < estado->qtdParedes; i++) {
-        fprintf(file, "%f,%f;", estado->posParedes[i].x, estado->posParedes[i].y);
-    }
-    fprintf(file, "\n");
-
-    // Salvar portais
-    for (int i = 0; i < estado->qtdPortais; i++) {
-        fprintf(file, "%f,%f;", estado->posPortais[i].x, estado->posPortais[i].y);
-    }
-    fprintf(file, "\n");
-
-    // Salvar monstros
-    for (int i = 0; i < estado->qtdMonstros; i++) {
-        fprintf(file, "%f,%f;%d\n", estado->posMonstros[i].x, estado->posMonstros[i].y, estado->indexMonstro[i]);
-    }
-    fprintf(file, "\n");
-
-    // Salvar frutinhas
-    for (int i = 0; i < estado->qtdFrutinhas; i++) {
-        fprintf(file, "%f,%f;", estado->posFrutinhas[i].x, estado->posFrutinhas[i].y);
-    }
-    fprintf(file, "\n");
-
-    // Salvar tempos de spawn
-    for (int i = 0; i < estado->qtdMonstros; i++) {
-        fprintf(file, "%d;", estado->spawTimes[i]);
-    }
-    fprintf(file, "\n");
-
-    // Salvar posiÃ§Ã£o do jogador e da base
-    fprintf(file, "posJogador:%f,%f\n", estado->posJogador.x, estado->posJogador.y);
-    fprintf(file, "posBase:%f,%f\n", estado->posBase.x, estado->posBase.y);
-
+    fwrite(estado, sizeof(struct Estado), 1, file);
     fclose(file);
 }
 
-// FunÃ§Ã£o para atualizar o estado do jogo
-struct Estado atualizarEstado(char k, struct Estado estado) {
+// Função para atualizar o estado do jogo
+struct Estado atualizarEstado(int k, struct Estado estado) {
     estado.tempo++;
     Vector2 novaPosJogador = estado.posJogador;
     Vector2 novaPosMonstros[MAX_MONSTROS];
@@ -199,32 +95,31 @@ struct Estado atualizarEstado(char k, struct Estado estado) {
         case 'g':
         case 'G':
             // Colocar armadilha
-            for (int i = 0; i < MAX_FRUTAS; i++) {
-                if (estado.posArmadilhas[i].x == 0 && estado.posArmadilhas[i].y == 0) {
-                    estado.posArmadilhas[i] = estado.posJogador;
-                    break;
+            if (estado.recursos > 0) {
+                for (int i = 0; i < MAX_FRUTAS; i++) {
+                    if (estado.posArmadilhas[i].x == 0 && estado.posArmadilhas[i].y == 0) {
+                        estado.posArmadilhas[i] = estado.posJogador;
+                        estado.recursos--;
+                        break;
+                    }
                 }
             }
             break;
     }
 
-    // Verificar colisÃµes
+    // Atualizar posição dos monstros
     for (int i = 0; i < estado.qtdMonstros; i++) {
-        // Atualizar posiÃ§Ã£o dos monstros
-        if (estado.tempo % 60 == 0) { // Mover monstros a cada 60 quadros
-            int currentIndex = estado.indexMonstro[i];
-            if (currentIndex < estado.comprimentoTrilha - 1) {
+        if (estado.indexMonstro[i] < estado.comprimentoTrilha - 1) {
+            if (estado.tempo % 60 == 0) {
                 estado.indexMonstro[i]++;
-                novaPosMonstros[i] = estado.trilha[estado.indexMonstro[i]];
-            } else {
-                novaPosMonstros[i] = estado.trilha[currentIndex];
             }
+            novaPosMonstros[i] = estado.trilha[estado.indexMonstro[i]];
         } else {
             novaPosMonstros[i] = estado.posMonstros[i];
         }
     }
 
-    // ColisÃ£o jogador/recurso
+    // Colisão jogador/recurso
     for (int i = 0; i < estado.qtdFrutinhas; i++) {
         if (verificarColisao(novaPosJogador, estado.posFrutinhas[i])) {
             estado.recursos++;
@@ -232,10 +127,10 @@ struct Estado atualizarEstado(char k, struct Estado estado) {
         }
     }
 
-    // ColisÃ£o armadilha/monstro
+    // Colisão armadilha/monstro
     for (int j = 0; j < estado.qtdMonstros; j++) {
         for (int i = 0; i < MAX_FRUTAS; i++) {
-            if (estado.posArmadilhas[i].x != -1 && estado.posArmadilhas[i].y != -1) {
+            if (estado.posArmadilhas[i].x != 0 && estado.posArmadilhas[i].y != 0) {
                 if (verificarColisao(estado.posArmadilhas[i], estado.posMonstros[j])) {
                     // Monstro e armadilha desaparecem
                     for (int k = j; k < estado.qtdMonstros - 1; k++) {
@@ -244,14 +139,14 @@ struct Estado atualizarEstado(char k, struct Estado estado) {
                     }
                     estado.qtdMonstros--;
                     estado.posArmadilhas[i] = (Vector2){-1, -1};
-                    j--; // Ajustar Ã­ndice apÃ³s a remoÃ§Ã£o
+                    j--; // Ajustar índice após a remoção
                     break;
                 }
             }
         }
     }
 
-    // ColisÃ£o monstro/torre
+    // Colisão monstro/torre
     for (int i = 0; i < estado.qtdMonstros; i++) {
         if (verificarColisao(estado.posMonstros[i], estado.posBase)) {
             for (int j = i; j < estado.qtdMonstros - 1; j++) {
@@ -260,18 +155,21 @@ struct Estado atualizarEstado(char k, struct Estado estado) {
             }
             estado.qtdMonstros--;
             estado.vidas--;
-            i--; // Ajustar Ã­ndice apÃ³s a remoÃ§Ã£o
+            i--; // Ajustar índice após a remoção
         }
     }
-
-    // ColisÃ£o jogador/parede
+    if (estado.vidas <= 0)
+        estado.derrota = true;
+    if (estado.qtdMonstros == 0 && estado.tempo>180)
+        estado.vitoria = true;
+    // Colisão jogador/parede
     for (int i = 0; i < estado.qtdParedes; i++) {
         if (verificarColisao(novaPosJogador, estado.posParedes[i])) {
-            novaPosJogador = estado.posJogador; // Reverter posiÃ§Ã£o
+            novaPosJogador = estado.posJogador; // Reverter posição
         }
     }
 
-    // ColisÃ£o jogador/portal
+    // Colisão jogador/portal
     for (int i = 0; i < estado.qtdPortais; i++) {
         if (verificarColisao(novaPosJogador, estado.posPortais[i])) {
             switch (k) {
@@ -292,26 +190,26 @@ struct Estado atualizarEstado(char k, struct Estado estado) {
                     break;
                 case 's':
                 case 'S':
-                case KEY_DOWN:
                     novaPosJogador.y += QUAD_SIZE;
                     break;
             }
         }
     }
 
-    // Atualizar posiÃ§Ã£o do jogador
+    // Atualizar posição do jogador
     estado.posJogador = novaPosJogador;
-    // Atualizar posiÃ§Ã£o dos monstros
+    // Atualizar posição dos monstros
     for (int i = 0; i < estado.qtdMonstros; i++) {
         estado.posMonstros[i] = novaPosMonstros[i];
     }
 
     // Spawn de monstros
-    if (estado.tempo % 180 == 0) { // Spawn de monstros a cada 180 quadros
+    if (estado.qtdMonstros < MAX_MONSTROS && estado.tempo % 180 == 0) { // Spawn de monstros a cada 180 quadros
         for (int j = 0; j < MAX_MONSTROS; j++) {
-            if (estado.posMonstros[j].x == -1 && estado.posMonstros[j].y == -1) {
-                estado.posMonstros[j] = estado.trilha[0]; // Spawn no inÃ­cio da trilha
-                estado.indexMonstro[j] = 0; // Iniciar no primeiro Ã­ndice da trilha
+            if (estado.indexMonstro[j] == -1) {
+                estado.posMonstros[j] = estado.trilha[0]; // Spawn no início da trilha
+                estado.indexMonstro[j] = 0; // Iniciar no primeiro índice da trilha
+                estado.qtdMonstros++;
                 break;
             }
         }
@@ -320,7 +218,7 @@ struct Estado atualizarEstado(char k, struct Estado estado) {
     return estado;
 }
 
-// FunÃ§Ã£o para gerar um mapa aleatÃ³rio
+// Função para gerar um mapa aleatório
 void gerarMapaAleatorio(struct Estado* estado) {
     // Inicializar valores de estado
     estado->vidas = 3;
@@ -334,6 +232,16 @@ void gerarMapaAleatorio(struct Estado* estado) {
     estado->tempo = 0;
     estado->recursos = 0;
     estado->comprimentoTrilha = 0;
+
+    // Inicializar vetores de posição com zeros
+    memset(estado->trilha, 0, sizeof(estado->trilha));
+    memset(estado->posParedes, 0, sizeof(estado->posParedes));
+    memset(estado->posPortais, 0, sizeof(estado->posPortais));
+    memset(estado->posMonstros, 0, sizeof(estado->posMonstros));
+    memset(estado->indexMonstro, -1, sizeof(estado->indexMonstro));
+    memset(estado->spawTimes, 0, sizeof(estado->spawTimes));
+    memset(estado->posFrutinhas, 0, sizeof(estado->posFrutinhas));
+    memset(&estado->posJogador, 0, sizeof(estado->posJogador));
 
     srand(time(NULL));
 
@@ -358,7 +266,7 @@ void gerarMapaAleatorio(struct Estado* estado) {
         char tipoMuro = "IOU"[rand() % 3];
         int x = rand() % (MAP_WIDTH - 4) + 2;
         int y = rand() % (MAP_HEIGHT - 4) + 2;
-        int comprimento = rand() % 3 + 2;
+        int comprimento = rand() % 6 + 2;
 
         if (tipoMuro == 'I') {
             for (int j = 0; j < comprimento; j++) {
@@ -392,22 +300,20 @@ void gerarMapaAleatorio(struct Estado* estado) {
     }
 
     // Gerar monstros
-    estado->qtdMonstros = rand() % MAX_MONSTROS;
-    for (int i = 0; i < estado->qtdMonstros; i++) {
-        estado->posMonstros[i] = (Vector2){-1, -1};
-        estado->spawTimes[i] = i * 180; // Spawna a cada 180 quadros
+    for (int i = 0; i < MAX_MONSTROS; i++) {
+        estado->indexMonstro[i] = -1; // Iniciar como inativo
     }
 
     // Gerar frutinhas
-    estado->qtdFrutinhas = estado->qtdMonstros;
+    estado->qtdFrutinhas = MAX_MONSTROS; // Defina um número fixo de frutinhas
     for (int i = 0; i < estado->qtdFrutinhas; i++) {
         int x, y;
         bool posicaoValida;
-        posicaoValida = true;
-        x = rand() % MAP_WIDTH;
-        y = rand() % MAP_HEIGHT;
-        Vector2 pos = (Vector2){x * QUAD_SIZE, y * QUAD_SIZE};
         do {
+            posicaoValida = true;
+            x = rand() % MAP_WIDTH;
+            y = rand() % MAP_HEIGHT;
+            Vector2 pos = (Vector2){x * QUAD_SIZE, y * QUAD_SIZE};
             for (int j = 0; j < estado->comprimentoTrilha; j++) {
                 if (verificarColisao(pos, estado->trilha[j])) {
                     posicaoValida = false;
@@ -427,10 +333,10 @@ void gerarMapaAleatorio(struct Estado* estado) {
                 }
             }
         } while (!posicaoValida);
-        estado->posFrutinhas[i] = pos;
+        estado->posFrutinhas[i] = (Vector2){x * QUAD_SIZE, y * QUAD_SIZE};
     }
 
-    // Definir a posiÃ§Ã£o de spawn do jogador aleatoriamente fora da trilha e dos muros
+    // Definir a posição de spawn do jogador aleatoriamente fora da trilha e dos muros
     do {
         estado->posJogador = (Vector2){(rand() % MAP_WIDTH) * QUAD_SIZE, (rand() % MAP_HEIGHT) * QUAD_SIZE};
     } while (verificarColisao(estado->posJogador, estado->posBase) || verificarColisao(estado->posJogador, estado->trilha[0]));
@@ -442,10 +348,8 @@ int main(void) {
 
     struct Estado estado = {0};
 
-    // Escolher entre carregar um estado salvo ou gerar um novo mapa aleatÃ³rio
-    printf("Digite 1 para carregar um estado salvo, 2 para gerar um novo mapa aleatÃ³rio: ");
-    int escolha;
-    scanf("%d", &escolha);
+    // Escolher entre carregar um estado salvo ou gerar um novo mapa aleatório
+    int escolha = 2;
 
     if (escolha == 1) {
         carregarEstado("savegame.txt", &estado);
@@ -459,12 +363,12 @@ int main(void) {
         char k = GetCharPressed();
         estado = atualizarEstado(k, estado);
 
-        // Salvar estado quando a tecla 'S' Ã© pressionada
+        // Salvar estado quando a tecla 'S' é pressionada
         if (IsKeyPressed(KEY_K)) {
             salvarEstado("savegame.txt", &estado);
         }
 
-        // Carregar estado quando a tecla 'L' Ã© pressionada
+        // Carregar estado quando a tecla 'L' é pressionada
         if (IsKeyPressed(KEY_L)) {
             carregarEstado("savegame.txt", &estado);
         }
@@ -473,13 +377,15 @@ int main(void) {
         ClearBackground(BLACK);
 
         // Desenhar elementos do jogo
+        for (int i = 0; i < estado.comprimentoTrilha; i++) {
+            DrawRectangleV(estado.trilha[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PINK);
+        }
+
         DrawRectangleV(estado.posJogador, (Vector2){QUAD_SIZE, QUAD_SIZE}, BLUE);
         DrawRectangleV(estado.posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, DARKGRAY);
 
         for (int i = 0; i < estado.qtdMonstros; i++) {
-            if (estado.posMonstros[i].x != -1 && estado.posMonstros[i].y != -1) {
-                DrawRectangleV(estado.posMonstros[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, RED);
-            }
+            DrawRectangleV(estado.posMonstros[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, RED);
         }
 
         for (int i = 0; i < estado.qtdFrutinhas; i++) {
@@ -495,11 +401,15 @@ int main(void) {
         }
 
         for (int i = 0; i < MAX_FRUTAS; i++) {
-            if (estado.posArmadilhas[i].x != -1 && estado.posArmadilhas[i].y != -1) {
+            if (estado.posArmadilhas[i].x != 0 && estado.posArmadilhas[i].y != 0) {
                 DrawRectangleV(estado.posArmadilhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, YELLOW);
             }
         }
 
+        if (estado.vitoria)
+            printf("vitoria");
+        if (estado.derrota)
+            printf("derrota");
         EndDrawing();
     }
 
