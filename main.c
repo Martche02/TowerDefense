@@ -65,35 +65,48 @@ void salvarEstado(char* filename, struct Estado* estado) {
     fclose(file);
 }
 
+
+int getK()
+{
+    int k = 0;
+    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP)) k = 1;
+    if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)) k = 2;
+    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)) k = 3;
+    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) k = 4;
+    if (IsKeyDown(KEY_G)) k = 5;
+
+    return k;
+}
+
 // Função para atualizar o estado do jogo
 struct Estado atualizarEstado(int k, struct Estado estado) {
     estado.tempo++;
     Vector2 novaPosJogador = estado.posJogador;
     Vector2 novaPosMonstros[MAX_MONSTROS];
 
-    switch (k) {
-        case 'a':
-        case 'A':
-        case KEY_LEFT:
-            novaPosJogador.x -= QUAD_SIZE;
+    switch(k)
+    {
+        case 87:
+        case 265:
+            novaPosJogador.y -= QUAD_SIZE; // Mover para cima
             break;
-        case 'd':
-        case 'D':
-        case KEY_RIGHT:
-            novaPosJogador.x += QUAD_SIZE;
+
+        case 83:
+        case 264:
+            novaPosJogador.y += QUAD_SIZE; // Mover para baixo
             break;
-        case 'w':
-        case 'W':
-        case KEY_UP:
-            novaPosJogador.y -= QUAD_SIZE;
+
+        case 65:
+        case 263:
+            novaPosJogador.x -= QUAD_SIZE; // Mover para a esquerda
             break;
-        case 's':
-        case 'S':
-        case KEY_DOWN:
-            novaPosJogador.y += QUAD_SIZE;
+
+        case 68:
+        case 262:
+            novaPosJogador.x += QUAD_SIZE; // Mover para a direita
             break;
-        case 'g':
-        case 'G':
+
+        case 71:
             // Colocar armadilha
             if (estado.recursos > 0) {
                 for (int i = 0; i < MAX_FRUTAS; i++) {
@@ -105,7 +118,10 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
                 }
             }
             break;
+
     }
+
+
 
     // Atualizar posição dos monstros
     for (int i = 0; i < estado.qtdMonstros; i++) {
@@ -172,27 +188,17 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
     // Colisão jogador/portal
     for (int i = 0; i < estado.qtdPortais; i++) {
         if (verificarColisao(novaPosJogador, estado.posPortais[i])) {
-            switch (k) {
-                case 'a':
-                case 'A':
-                case KEY_LEFT:
-                    novaPosJogador.x -= QUAD_SIZE;
-                    break;
-                case 'd':
-                case 'D':
-                case KEY_RIGHT:
-                    novaPosJogador.x += QUAD_SIZE;
-                    break;
-                case 'w':
-                case 'W':
-                case KEY_UP:
-                    novaPosJogador.y -= QUAD_SIZE;
-                    break;
-                case 's':
-                case 'S':
-                    novaPosJogador.y += QUAD_SIZE;
-                    break;
-            }
+            // Verifica se as teclas WASD estão pressionadas
+    if (IsKeyDown(KEY_W)) novaPosJogador.y -= QUAD_SIZE; // Mover para cima
+    if (IsKeyDown(KEY_S)) novaPosJogador.y += QUAD_SIZE; // Mover para baixo
+    if (IsKeyDown(KEY_A)) novaPosJogador.x -= QUAD_SIZE; // Mover para a esquerda
+    if (IsKeyDown(KEY_D)) novaPosJogador.x += QUAD_SIZE; // Mover para a direita
+
+    // Verifica se as setas direcionais estão pressionadas
+    if (IsKeyDown(KEY_UP)) novaPosJogador.y -= QUAD_SIZE; // Mover para cima
+    if (IsKeyDown(KEY_DOWN)) novaPosJogador.y += QUAD_SIZE; // Mover para baixo
+    if (IsKeyDown(KEY_LEFT)) novaPosJogador.x -= QUAD_SIZE; // Mover para a esquerda
+    if (IsKeyDown(KEY_RIGHT)) novaPosJogador.x += QUAD_SIZE; // Mover para a direita
         }
     }
 
@@ -360,8 +366,13 @@ int main(void) {
 
     // Loop principal do jogo
     while (!WindowShouldClose()) {
-        char k = GetCharPressed();
+
+        int k = GetKeyPressed();
         estado = atualizarEstado(k, estado);
+
+        char text[64];
+       sprintf(text, "Armadilhas: %d  Vidas da torre: %d Monstros restantes: %d",
+               estado.recursos, estado.vidas, estado.qtdMonstros);
 
         // Salvar estado quando a tecla 'S' é pressionada
         if (IsKeyPressed(KEY_K)) {
@@ -375,6 +386,8 @@ int main(void) {
 
         BeginDrawing();
         ClearBackground(BLACK);
+
+        DrawText(text, 10, 10, 20, WHITE);
 
         // Desenhar elementos do jogo
         for (int i = 0; i < estado.comprimentoTrilha; i++) {
@@ -405,6 +418,8 @@ int main(void) {
                 DrawRectangleV(estado.posArmadilhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, YELLOW);
             }
         }
+
+
 
         if (estado.vitoria)
             printf("vitoria");
