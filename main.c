@@ -376,10 +376,16 @@ void carregarMapaDeArquivo(struct Estado* estado, const char* caminhoArquivo) {
     memset(estado->posFrutinhas, 0, sizeof(estado->posFrutinhas));
     memset(&estado->posJogador, 0, sizeof(estado->posJogador));
 
+    char mapa[MAP_HEIGHT][MAP_WIDTH] = {0}; // Para armazenar o mapa temporariamente
     char linha[MAP_WIDTH + 2]; // +2 para o '\n' e '\0'
     int y = 0;
+
     while (fgets(linha, sizeof(linha), arquivo) && y < MAP_HEIGHT) {
         for (int x = 0; x < MAP_WIDTH && linha[x] != '\n'; x++) {
+            if (linha[x] == ' ') {
+                continue; // Ignorar espaços em branco
+            }
+            mapa[y][x] = linha[x]; // Armazenar o caractere no mapa
             Vector2 pos = {x * QUAD_SIZE, y * QUAD_SIZE};
             switch (linha[x]) {
                 case 'J':
@@ -402,7 +408,7 @@ void carregarMapaDeArquivo(struct Estado* estado, const char* caminhoArquivo) {
                 case 'B':
                     estado->posBase = pos;
                     break;
-                case '.':
+                case 'I':
                     estado->trilha[estado->comprimentoTrilha++] = pos;
                     break;
             }
@@ -411,6 +417,52 @@ void carregarMapaDeArquivo(struct Estado* estado, const char* caminhoArquivo) {
     }
 
     fclose(arquivo);
+
+    // Função auxiliar para verificar se a posição está dentro dos limites do mapa
+    bool dentroDosLimites(int x, int y) {
+        return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
+    }
+
+    // Função auxiliar para verificar se a posição já está na trilha
+    bool jaNaTrilha(Vector2 pos, Vector2* trilha, int comprimentoTrilha) {
+        for (int i = 0; i < comprimentoTrilha; i++) {
+            if (trilha[i].x == pos.x && trilha[i].y == pos.y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Encontrar e construir a trilha
+    int dx[] = {0, 0, -1, 1}; // Direções de movimento: cima, baixo, esquerda, direita
+    int dy[] = {-1, 1, 0, 0};
+
+    Vector2 atual = estado->trilha[0];
+    while (true) {
+        bool encontrado = false;
+        for (int i = 0; i < 4; i++) {
+            int nx = atual.x / QUAD_SIZE + dx[i];
+            int ny = atual.y / QUAD_SIZE + dy[i];
+            if (dentroDosLimites(nx, ny)) {
+                Vector2 proximo = {nx * QUAD_SIZE, ny * QUAD_SIZE};
+                if (!jaNaTrilha(proximo, estado->trilha, estado->comprimentoTrilha)) {
+                    if (mapa[ny][nx] == 'B') {
+                        estado->trilha[estado->comprimentoTrilha++] = proximo;
+                        encontrado = true;
+                        break;
+                    } else if (mapa[ny][nx] == '.') {
+                        estado->trilha[estado->comprimentoTrilha++] = proximo;
+                        atual = proximo;
+                        encontrado = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (!encontrado) {
+            break; // Se não encontrou nenhum próximo ponto na trilha, parar a busca
+        }
+    }
 }
 int main(void) {
     InitWindow(LARGURA, ALTURA, "Tower Defense");
