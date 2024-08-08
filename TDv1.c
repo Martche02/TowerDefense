@@ -14,7 +14,7 @@
 #define MAX_PAREDES 200
 #define MAX_PORTAIS 20
 
-// Definição da estrutura Estado
+// Definiï¿½ï¿½o da estrutura Estado
 struct Estado {
     int vidas;
     bool vidaJogador;
@@ -23,7 +23,7 @@ struct Estado {
     int qtdPortais;
     int qtdParedes;
     Vector2 posMonstros[MAX_MONSTROS];
-    int indexMonstro[MAX_MONSTROS];  // Índice atual na trilha
+    int indexMonstro[MAX_MONSTROS];  // ï¿½ndice atual na trilha
     Vector2 posFrutinhas[MAX_FRUTAS];
     Vector2 posPortais[MAX_PORTAIS];
     Vector2 posParedes[MAX_PAREDES];
@@ -37,14 +37,15 @@ struct Estado {
     int comprimentoTrilha;
     int spawTimes[MAX_MONSTROS];
     int recursos;
+    int nivelatual;
 };
 
-// Função para verificar colisão
-bool verificarColisao(Vector2 a, Vector2 b) {
+// Funï¿½ï¿½o para verificar colisï¿½o
+int verificarColisao(Vector2 a, Vector2 b) {
     return (a.x == b.x && a.y == b.y);
 }
 
-// Função para carregar o estado do jogo
+// Funï¿½ï¿½o para carregar o estado do jogo
 void carregarEstado(char* filename, struct Estado* estado) {
     FILE* file = fopen(filename, "r+b");
     if (!file) {
@@ -54,7 +55,7 @@ void carregarEstado(char* filename, struct Estado* estado) {
     fread(estado, sizeof(struct Estado), 1, file);
     fclose(file);
 }
-// Função para salvar o estado do jogo
+// Funï¿½ï¿½o para salvar o estado do jogo
 void salvarEstado(char* filename, struct Estado* estado) {
     FILE* file = fopen(filename, "wb");
     if (!file) {
@@ -78,7 +79,7 @@ int getK()
     return k;
 }
 
-// Função para atualizar o estado do jogo
+// Funï¿½ï¿½o para atualizar o estado do jogo
 struct Estado atualizarEstado(int k, struct Estado estado) {
     estado.tempo++;
     Vector2 novaPosJogador = estado.posJogador;
@@ -123,7 +124,7 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
 
 
 
-    // Atualizar posição dos monstros
+    // Atualizar posiï¿½ï¿½o dos monstros
     for (int i = 0; i < estado.qtdMonstros; i++) {
         if (estado.indexMonstro[i] < estado.comprimentoTrilha - 1) {
             if (estado.tempo % 60 == 0) {
@@ -135,7 +136,7 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
         }
     }
 
-    // Colisão jogador/recurso
+    // Colisï¿½o jogador/recurso
     for (int i = 0; i < estado.qtdFrutinhas; i++) {
         if (verificarColisao(novaPosJogador, estado.posFrutinhas[i])) {
             estado.recursos++;
@@ -143,7 +144,7 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
         }
     }
 
-    // Colisão armadilha/monstro
+    // Colisï¿½o armadilha/monstro
     for (int j = 0; j < estado.qtdMonstros; j++) {
         for (int i = 0; i < MAX_FRUTAS; i++) {
             if (estado.posArmadilhas[i].x != 0 && estado.posArmadilhas[i].y != 0) {
@@ -155,56 +156,153 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
                     }
                     estado.qtdMonstros--;
                     estado.posArmadilhas[i] = (Vector2){-1, -1};
-                    j--; // Ajustar índice após a remoção
+                    j--; // Ajustar ï¿½ndice apï¿½s a remoï¿½ï¿½o
                     break;
                 }
             }
         }
     }
 
-    // Colisão monstro/torre
+/*
+    for (int j = 0; j < estado.qtdMonstros; j++) {
+    if (verificarColisao(estado.posBase, estado.posMonstros[j])) {
+        // Remover o monstro que colidiu com a base
+        for (int k = j; k < estado.qtdMonstros - 1; k++) {
+            estado.posMonstros[k] = estado.posMonstros[k + 1];
+            estado.indexMonstro[k] = estado.indexMonstro[k + 1];
+        }
+        estado.qtdMonstros--;
+        j--; // Ajustar Ã­ndice apÃ³s a remoÃ§Ã£o
+        break; // Sair do loop apÃ³s remover o monstro
+    }
+}
+
+
+    for (int j = 0; j < estado.qtdMonstros; j++) {
+            if (verificarColisao(estado.posBase, estado.posMonstros[j])) {
+
+                for (int k = j; k < estado.qtdMonstros - 1; k++) {
+                    estado.posMonstros[k] = estado.posMonstros[k + 1];
+                    estado.indexMonstro[k] = estado.indexMonstro[k + 1];
+                }
+                estado.qtdMonstros--;
+                j--; // Ajustar ï¿½ndice apï¿½s a remoï¿½ï¿½o
+                break;
+
+        }
+    }
+*/
+    // Colisï¿½o monstro/torre
     for (int i = 0; i < estado.qtdMonstros; i++) {
         if (verificarColisao(estado.posMonstros[i], estado.posBase)) {
             for (int j = i; j < estado.qtdMonstros - 1; j++) {
                 estado.posMonstros[j] = estado.posMonstros[j + 1];
                 estado.indexMonstro[j] = estado.indexMonstro[j + 1];
             }
+            printf("matou");
             estado.qtdMonstros--;
             estado.vidas--;
-            i--; // Ajustar índice após a remoção
+            i--; // Ajustar ï¿½ndice apï¿½s a remoï¿½ï¿½o
         }
     }
+
     if (estado.vidas <= 0)
         estado.derrota = true;
     if (estado.qtdMonstros == 0 && estado.tempo>180)
         estado.vitoria = true;
-    // Colisão jogador/parede
+
+
+    // Colisï¿½o jogador/parede
     for (int i = 0; i < estado.qtdParedes; i++) {
         if (verificarColisao(novaPosJogador, estado.posParedes[i])) {
-            novaPosJogador = estado.posJogador; // Reverter posição
+            novaPosJogador = estado.posJogador; // Reverter posiï¿½ï¿½o
         }
     }
 
-    // Colisão jogador/portal
+    // Colisï¿½o jogador/portal
     for (int i = 0; i < estado.qtdPortais; i++) {
         if (verificarColisao(novaPosJogador, estado.posPortais[i])) {
-            // Verifica se as teclas WASD estão pressionadas
-    if (IsKeyDown(KEY_W)) novaPosJogador.y -= QUAD_SIZE; // Mover para cima
-    if (IsKeyDown(KEY_S)) novaPosJogador.y += QUAD_SIZE; // Mover para baixo
-    if (IsKeyDown(KEY_A)) novaPosJogador.x -= QUAD_SIZE; // Mover para a esquerda
-    if (IsKeyDown(KEY_D)) novaPosJogador.x += QUAD_SIZE; // Mover para a direita
+            // Verifica se as teclas WASD estï¿½o pressionadas
+            int pos;
+            switch(k)
+            {
+                case 87:
+                case 265:
+                     // Mover para cima
+                    pos = ALTURA;
+                    for (int j = 0; j < estado.qtdPortais; j++) {
+                            if(estado.posPortais[j].x == novaPosJogador.x && estado.posPortais[j].y <pos){
+                                pos = estado.posPortais[j].y;
+                            }
+                    }
+                    if(pos!=ALTURA){
+                        novaPosJogador.y = pos-QUAD_SIZE;
+                    } else{
+                        novaPosJogador.y -= QUAD_SIZE;
+                    }
 
-    // Verifica se as setas direcionais estão pressionadas
-    if (IsKeyDown(KEY_UP)) novaPosJogador.y -= QUAD_SIZE; // Mover para cima
-    if (IsKeyDown(KEY_DOWN)) novaPosJogador.y += QUAD_SIZE; // Mover para baixo
-    if (IsKeyDown(KEY_LEFT)) novaPosJogador.x -= QUAD_SIZE; // Mover para a esquerda
-    if (IsKeyDown(KEY_RIGHT)) novaPosJogador.x += QUAD_SIZE; // Mover para a direita
+                    break;
+
+                case 83:
+                case 264:
+                   //pra baixo
+                    pos = 0;
+                    for (int j = 0; j < estado.qtdPortais; j++) {
+                            if(estado.posPortais[j].x == novaPosJogador.x && estado.posPortais[j].y >pos){
+                                pos = estado.posPortais[j].y;
+                            }
+                    }
+                    if(pos!=0){
+                        novaPosJogador.y = pos+QUAD_SIZE;
+                    } else{
+                        novaPosJogador.y += QUAD_SIZE;
+                    }
+                    break;
+
+                case 65:
+                case 263:
+                     // Mover para esquerda
+                    pos = LARGURA;
+                    for (int j = 0; j < estado.qtdPortais; j++) {
+                            if(estado.posPortais[j].y == novaPosJogador.y && estado.posPortais[j].x <pos){
+                                pos = estado.posPortais[j].x;
+                            }
+                    }
+                    if(pos!=LARGURA){
+                        novaPosJogador.x = pos-QUAD_SIZE;
+                    } else{
+                        novaPosJogador.x -= QUAD_SIZE;
+                    }
+
+                    break;
+
+                case 68:
+                case 262:
+                    pos = 0;
+                    for (int j = 0; j < estado.qtdPortais; j++) {
+                            if(estado.posPortais[j].y == novaPosJogador.y && estado.posPortais[j].x >pos){
+                                pos = estado.posPortais[j].x;
+                            }
+                    }
+                    if(pos!=0){
+                        novaPosJogador.x = pos+QUAD_SIZE;
+                    } else{
+                        novaPosJogador.x += QUAD_SIZE;
+                    }
+                    break;
+
+            }
         }
     }
 
-    // Atualizar posição do jogador
+     //Colisï¿½o jogador/monstro
+    for (int i = 0; i < estado.qtdMonstros - 1; i++) {
+        if (verificarColisao(estado.posMonstros[i], novaPosJogador))estado.derrota = true;
+    }
+
+    // Atualizar posiï¿½ï¿½o do jogador
     estado.posJogador = novaPosJogador;
-    // Atualizar posição dos monstros
+    // Atualizar posiï¿½ï¿½o dos monstros
     for (int i = 0; i < estado.qtdMonstros; i++) {
         estado.posMonstros[i] = novaPosMonstros[i];
     }
@@ -213,8 +311,8 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
     if (estado.qtdMonstros < MAX_MONSTROS && estado.tempo % 180 == 0) { // Spawn de monstros a cada 180 quadros
         for (int j = 0; j < MAX_MONSTROS; j++) {
             if (estado.indexMonstro[j] == -1) {
-                estado.posMonstros[j] = estado.trilha[0]; // Spawn no início da trilha
-                estado.indexMonstro[j] = 0; // Iniciar no primeiro índice da trilha
+                estado.posMonstros[j] = estado.trilha[0]; // Spawn no inï¿½cio da trilha
+                estado.indexMonstro[j] = 0; // Iniciar no primeiro ï¿½ndice da trilha
                 estado.qtdMonstros++;
                 break;
             }
@@ -224,7 +322,8 @@ struct Estado atualizarEstado(int k, struct Estado estado) {
     return estado;
 }
 
-// Função para gerar um mapa aleatório
+
+// Funï¿½ï¿½o para gerar um mapa aleatï¿½rio
 void gerarMapaAleatorio(struct Estado* estado) {
     // Inicializar valores de estado
     estado->vidas = 3;
@@ -239,7 +338,7 @@ void gerarMapaAleatorio(struct Estado* estado) {
     estado->recursos = 0;
     estado->comprimentoTrilha = 0;
 
-    // Inicializar vetores de posição com zeros
+    // Inicializar vetores de posiï¿½ï¿½o com zeros
     memset(estado->trilha, 0, sizeof(estado->trilha));
     memset(estado->posParedes, 0, sizeof(estado->posParedes));
     memset(estado->posPortais, 0, sizeof(estado->posPortais));
@@ -311,7 +410,7 @@ void gerarMapaAleatorio(struct Estado* estado) {
     }
 
     // Gerar frutinhas
-    estado->qtdFrutinhas = MAX_MONSTROS; // Defina um número fixo de frutinhas
+    estado->qtdFrutinhas = MAX_MONSTROS; // Defina um nï¿½mero fixo de frutinhas
     for (int i = 0; i < estado->qtdFrutinhas; i++) {
         int x, y;
         bool posicaoValida;
@@ -342,27 +441,148 @@ void gerarMapaAleatorio(struct Estado* estado) {
         estado->posFrutinhas[i] = (Vector2){x * QUAD_SIZE, y * QUAD_SIZE};
     }
 
-    // Definir a posição de spawn do jogador aleatoriamente fora da trilha e dos muros
+    // Definir a posiï¿½ï¿½o de spawn do jogador aleatoriamente fora da trilha e dos muros
     do {
         estado->posJogador = (Vector2){(rand() % MAP_WIDTH) * QUAD_SIZE, (rand() % MAP_HEIGHT) * QUAD_SIZE};
     } while (verificarColisao(estado->posJogador, estado->posBase) || verificarColisao(estado->posJogador, estado->trilha[0]));
 }
+void carregarMapaDeArquivo(struct Estado* estado, const char* caminhoArquivo) {
+    FILE* arquivo = fopen(caminhoArquivo, "r");
+    if (!arquivo) {
+        perror("Erro ao abrir o arquivo");
+        exit(EXIT_FAILURE);
+    }
 
-int main(void) {
+    // Inicializar valores de estado
+    estado->vidas = 3;
+    estado->vidaJogador = true;
+    estado->qtdMonstros = 0;
+    estado->qtdFrutinhas = 0;
+    estado->qtdPortais = 0;
+    estado->qtdParedes = 0;
+    estado->vitoria = false;
+    estado->derrota = false;
+    estado->tempo = 0;
+    estado->recursos = 0;
+    estado->comprimentoTrilha = 0;
+
+    memset(estado->trilha, 0, sizeof(estado->trilha));
+    memset(estado->posParedes, 0, sizeof(estado->posParedes));
+    memset(estado->posPortais, 0, sizeof(estado->posPortais));
+    memset(estado->posMonstros, 0, sizeof(estado->posMonstros));
+    memset(estado->indexMonstro, -1, sizeof(estado->indexMonstro));
+    memset(estado->spawTimes, 0, sizeof(estado->spawTimes));
+    memset(estado->posFrutinhas, 0, sizeof(estado->posFrutinhas));
+    memset(&estado->posJogador, 0, sizeof(estado->posJogador));
+
+    char mapa[MAP_HEIGHT][MAP_WIDTH] = {0}; // Para armazenar o mapa temporariamente
+    char linha[MAP_WIDTH + 2]; // +2 para o '\n' e '\0'
+    int y = 0;
+
+    while (fgets(linha, sizeof(linha), arquivo) && y < MAP_HEIGHT) {
+        for (int x = 0; x < MAP_WIDTH && linha[x] != '\n'; x++) {
+            if (linha[x] == ' ') {
+                continue; // Ignorar espaÃ§os em branco
+            }
+            mapa[y][x] = linha[x]; // Armazenar o caractere no mapa
+            Vector2 pos = {x * QUAD_SIZE, y * QUAD_SIZE};
+            switch (linha[x]) {
+                case 'J':
+                    estado->posJogador = pos;
+                    break;
+                case 'M':
+                    if (estado->qtdMonstros < MAX_MONSTROS) {
+                        estado->posMonstros[estado->qtdMonstros++] = pos;
+                    }
+                    break;
+                case 'R':
+                    estado->posFrutinhas[estado->qtdFrutinhas++] = pos;
+                    break;
+                case 'H':
+                    estado->posPortais[estado->qtdPortais++] = pos;
+                    break;
+                case 'W':
+                    estado->posParedes[estado->qtdParedes++] = pos;
+                    break;
+                case 'S':
+                    estado->posBase = pos;
+                    break;
+                case 'I':
+                    estado->trilha[estado->comprimentoTrilha++] = pos;
+                    break;
+            }
+        }
+        y++;
+    }
+
+    fclose(arquivo);
+
+    // FunÃ§Ã£o auxiliar para verificar se a posiÃ§Ã£o estÃ¡ dentro dos limites do mapa
+    bool dentroDosLimites(int x, int y) {
+        return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
+    }
+
+    // FunÃ§Ã£o auxiliar para verificar se a posiÃ§Ã£o jÃ¡ estÃ¡ na trilha
+    bool jaNaTrilha(Vector2 pos, Vector2* trilha, int comprimentoTrilha) {
+        for (int i = 0; i < comprimentoTrilha; i++) {
+            if (trilha[i].x == pos.x && trilha[i].y == pos.y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Encontrar e construir a trilha
+    int dx[] = {0, 0, -1, 1}; // DireÃ§Ãµes de movimento: cima, baixo, esquerda, direita
+    int dy[] = {-1, 1, 0, 0};
+
+    Vector2 atual = estado->trilha[0];
+    while (true) {
+        bool encontrado = false;
+        for (int i = 0; i < 4; i++) {
+            int nx = atual.x / QUAD_SIZE + dx[i];
+            int ny = atual.y / QUAD_SIZE + dy[i];
+            if (dentroDosLimites(nx, ny)) {
+                Vector2 proximo = {nx * QUAD_SIZE, ny * QUAD_SIZE};
+                if (!jaNaTrilha(proximo, estado->trilha, estado->comprimentoTrilha)) {
+                    if (mapa[ny][nx] == 'B') {
+                        estado->trilha[estado->comprimentoTrilha++] = proximo;
+                        encontrado = true;
+                        break;
+                    } else if (mapa[ny][nx] == '.') {
+                        estado->trilha[estado->comprimentoTrilha++] = proximo;
+                        atual = proximo;
+                        encontrado = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (!encontrado) {
+            break; // Se nÃ£o encontrou nenhum prÃ³ximo ponto na trilha, parar a busca
+        }
+    }
+}
+
+void carregaNivel(struct Estado* estado)
+{
+    char mapa[20];
+    snprintf(mapa, sizeof(mapa), "Mapa%d.txt", estado->nivelatual);
+    carregarMapaDeArquivo(estado, mapa);
+}
+
+int main() {
     InitWindow(LARGURA, ALTURA, "Tower Defense");
     SetTargetFPS(60);
 
     struct Estado estado = {0};
 
-    // Escolher entre carregar um estado salvo ou gerar um novo mapa aleatório
-    int escolha = 2;
+    // Escolher entre carregar um estado salvo ou gerar um novo mapa aleatï¿½rio
+    //abreMenu(&estado);
 
-    if (escolha == 1) {
-        carregarEstado("savegame.txt", &estado);
-    } else if (escolha == 2) {
-        gerarMapaAleatorio(&estado);
-        salvarEstado("savegame.txt", &estado); // Salva o estado inicial gerado
-    }
+    //carregarMapaDeArquivo(&estado, "mapa.txt");
+    estado.nivelatual = 1;
+    carregaNivel(&estado);
 
     // Loop principal do jogo
     while (!WindowShouldClose()) {
@@ -370,16 +590,16 @@ int main(void) {
         int k = GetKeyPressed();
         estado = atualizarEstado(k, estado);
 
-        char text[64];
-       sprintf(text, "Armadilhas: %d  Vidas da torre: %d Monstros restantes: %d",
+        char text[100];
+        sprintf(text, "Fase atual: 0    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Monstros restantes: %d",
                estado.recursos, estado.vidas, estado.qtdMonstros);
 
-        // Salvar estado quando a tecla 'S' é pressionada
+        // Salvar estado quando a tecla 'S' ï¿½ pressionada
         if (IsKeyPressed(KEY_K)) {
             salvarEstado("savegame.txt", &estado);
         }
 
-        // Carregar estado quando a tecla 'L' é pressionada
+        // Carregar estado quando a tecla 'L' ï¿½ pressionada
         if (IsKeyPressed(KEY_L)) {
             carregarEstado("savegame.txt", &estado);
         }
@@ -387,12 +607,9 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        DrawText(text, 10, 10, 20, WHITE);
-
         // Desenhar elementos do jogo
-        for (int i = 0; i < estado.comprimentoTrilha; i++) {
-            DrawRectangleV(estado.trilha[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PINK);
-        }
+        //for (int i = 0; i < estado.comprimentoTrilha; i++) {
+          //  DrawRectangleV(estado.trilha[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PINK);}
 
         DrawRectangleV(estado.posJogador, (Vector2){QUAD_SIZE, QUAD_SIZE}, BLUE);
         DrawRectangleV(estado.posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, DARKGRAY);
@@ -405,13 +622,6 @@ int main(void) {
             DrawRectangleV(estado.posFrutinhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, GREEN);
         }
 
-        for (int i = 0; i < estado.qtdPortais; i++) {
-            DrawRectangleV(estado.posPortais[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PURPLE);
-        }
-
-        for (int i = 0; i < estado.qtdParedes; i++) {
-            DrawRectangleV(estado.posParedes[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, BROWN);
-        }
 
         for (int i = 0; i < MAX_FRUTAS; i++) {
             if (estado.posArmadilhas[i].x != 0 && estado.posArmadilhas[i].y != 0) {
@@ -419,12 +629,47 @@ int main(void) {
             }
         }
 
+         for (int i = 0; i < estado.qtdPortais; i++) {
+            DrawRectangleV(estado.posPortais[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PURPLE);
+        }
 
+        for (int i = 0; i < estado.qtdParedes; i++) {
+            DrawRectangleV(estado.posParedes[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, BROWN);
+        }
+
+        DrawText(text, 10, 3, 19, WHITE);
 
         if (estado.vitoria)
+        {
+
             printf("vitoria");
+            ClearBackground(BLACK);
+            EndDrawing();
+            estado.nivelatual ++;
+            int e = estado.nivelatual;
+            //estado = {0};
+            memset(&estado, 0, sizeof(estado));
+            estado.nivelatual = e;
+            carregaNivel(&estado);
+        }
+
         if (estado.derrota)
-            printf("derrota");
+        {
+           printf("derrota");
+           ClearBackground(BLACK);
+           EndDrawing();
+
+            struct Estado estado = {0};
+
+            // Escolher entre carregar um estado salvo ou gerar um novo mapa aleatï¿½rio
+            //abreMenu(&estado);
+
+            //carregarMapaDeArquivo(&estado, "mapa.txt");
+
+            carregaNivel(&estado);
+
+        }
+
         EndDrawing();
     }
 
