@@ -12,7 +12,7 @@ W    W.WWWWWWWWWW.W                                        W
 W R  W.W        W.W                                        W
 W    W.W    R   W.W                                        W
 WWWHWW.W        W.W          WWWWWWWWWWHWWWWWWWWW          W
-WB.....W        H.W          W..................W          W
+WS.....W        H.W          W..................W          W
 WWWWHWWW        W.W          W.WWWWWWWWHWWWWWWW.W          W
 W      W        W.W          W.W              W.W          W
 W      W        W.W          W.W              W.H          W
