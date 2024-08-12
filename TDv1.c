@@ -11,8 +11,9 @@
 #define MAP_HEIGHT (ALTURA / QUAD_SIZE)
 #define MAX_MONSTROS 7
 #define MAX_FRUTAS 50
-#define MAX_PAREDES 200
-#define MAX_PORTAIS 20
+#define MAX_PAREDES 1000
+#define MAX_PORTAIS 100
+#define ULTIMAFASE 2
 
 // Defini��o da estrutura Estado
 typedef struct Estado {
@@ -38,6 +39,7 @@ typedef struct Estado {
     int spawTimes[MAX_MONSTROS];
     int recursos;
     int nivelatual;
+    int menu;
 }ESTADO;
 
 // Fun��o para verificar colis�o
@@ -66,6 +68,30 @@ void salvarEstado(char* filename, ESTADO* estado) {
     fwrite(estado, sizeof(ESTADO), 1, file);
     fclose(file);
 }
+
+int cheat(int k, int *ultimasteclas, ESTADO* estado)
+{
+    int códigoTrapaca[11] = {257, 65, 66, 262, 263, 262, 263, 264, 264, 265, 265};
+
+    if (k != 0) {
+        // Desloca as teclas anteriores para a direita
+        for (int i = 10; i > 0; i--) {
+            ultimasteclas[i] = ultimasteclas[i - 1];
+            printf("%d\n",ultimasteclas[i]);
+        }
+        // Armazena a nova tecla pressionada na primeira posição
+        ultimasteclas[0] = k;
+        printf("%d\n",ultimasteclas[0]);
+    }
+    //printf("%d\n", ultimasteclas[0]);
+    // Compara as duas arrays para verificar se o Konami Code foi inserido
+    if (memcmp(ultimasteclas, códigoTrapaca, sizeof(códigoTrapaca)) == 0) {
+        estado->vitoria = true;
+        ultimasteclas[0] = 0;
+    }
+
+}
+
 
 void getAcao(int k, ESTADO *estado, Vector2 *novaPosJogador)
 {
@@ -103,6 +129,8 @@ void getAcao(int k, ESTADO *estado, Vector2 *novaPosJogador)
                 }
             }
             break;
+        case 258:
+            estado->menu = 5;
     }
 }
 
@@ -222,12 +250,10 @@ void colisaoJogadorPortal(int k, ESTADO *estado, Vector2 *novaPosJogador)
 }
 
 // Fun��o para atualizar o estado do jogo
-ESTADO atualizarEstado(ESTADO estado) {
+ESTADO atualizarEstado(int k, ESTADO estado) {
     estado.tempo++;
     Vector2 novaPosJogador = estado.posJogador;
     Vector2 novaPosMonstros[MAX_MONSTROS];
-
-    int k = GetKeyPressed();
 
     getAcao(k, &estado, &novaPosJogador);
 
@@ -427,89 +453,138 @@ void carregaNivel(ESTADO* estado)
 {
     char mapa[20];
     snprintf(mapa, sizeof(mapa), "Mapa%d.txt", estado->nivelatual);
+    printf("%s", mapa);
     carregarMapaDeArquivo(estado, mapa);
+}
+
+
+void desenho(ESTADO *estado)
+{
+        char text[100];
+        sprintf(text, "Fase atual: %d    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Monstros restantes: %d",
+               estado->nivelatual, estado->recursos, estado->vidas, estado->qtdMonstros);
+
+        DrawRectangleV(estado->posJogador, (Vector2){QUAD_SIZE, QUAD_SIZE}, BLUE);
+        DrawRectangleV(estado->posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, DARKGRAY);
+
+        for (int i = 0; i < estado->qtdMonstros; i++) {
+            DrawRectangleV(estado->posMonstros[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, RED);
+        }
+
+        for (int i = 0; i < estado->qtdFrutinhas; i++) {
+            DrawRectangleV(estado->posFrutinhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, GREEN);
+        }
+
+
+        for (int i = 0; i < MAX_FRUTAS; i++) {
+            if (estado->posArmadilhas[i].x != 0 && estado->posArmadilhas[i].y != 0) {
+                DrawRectangleV(estado->posArmadilhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, YELLOW);
+            }
+        }
+
+         for (int i = 0; i < estado->qtdPortais; i++) {
+            DrawRectangleV(estado->posPortais[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PURPLE);
+        }
+
+        for (int i = 0; i < estado->qtdParedes; i++) {
+            DrawRectangleV(estado->posParedes[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, BROWN);
+        }
+
+        DrawText(text, 10, 3, 19, WHITE);
+}
+
+void novaFase(ESTADO *estado)//funcao para tela entre fases
+{
+    DrawText("Passou de fase!\n\n\n\nAperte ENTER para continuar", 250, 150, 40, WHITE);
+    if (IsKeyPressed(KEY_ENTER))estado->menu = 7;//continua
+}
+
+void menuControle(ESTADO *estado)//checa condicao a cada ciclo
+{
+    switch(estado->menu)
+    {
+        case 0://menu inicio
+            DrawText("Menu\n\n\n\nNovo Jogo(N)\n\n\n\nCarregar Jogo(C)\n\n\n\nSair(Q)", 400, 150, 40, WHITE);
+            if (IsKeyPressed(KEY_N)) estado->menu = 1;//novo jogo
+            if (IsKeyPressed(KEY_C)) estado->menu = 2;//carrega save
+            if (IsKeyPressed(KEY_Q)) estado->menu = 3;//sai
+            break;
+        case 1://novo jogo
+            estado->nivelatual = 1;
+            carregaNivel(estado);//reseta
+            estado->menu = 7;//continua
+            break;
+        case 2://carregar
+            carregarEstado("savegame.txt", estado);
+            break;
+        case 3://sair
+            CloseWindow();
+            break;
+        case 4://nova fase
+            novaFase(estado);//funcao para tela entre fases
+            break;
+        case 5: //menu de pause
+            DrawText("Pausado\n\n\n\nContinuar(C)\n\n\n\nCarregar Jogo(L)\n\n\n\nSalvar jogo(S)\n\n\n\nVoltar ao menu(V)\n\n\n\nSair(F)", 400, 50, 40, WHITE);
+            if (IsKeyPressed(KEY_C)) estado->menu = 7;//continua
+            if (IsKeyPressed(KEY_L)) carregarEstado("savegame.txt", estado);
+            if (IsKeyPressed(KEY_S)) salvarEstado("savegame.txt", estado);
+            if (IsKeyPressed(KEY_V)) estado->menu = 0;//menu inicial
+            if (IsKeyPressed(KEY_F)) estado->menu = 3;//fecha
+            break;
+        case 6://venceu jogo
+            DrawText("Parabéns!!!\n\n\n\nAperte ENTER para voltar ao MENU", 300, 200, 40, WHITE);
+            if (IsKeyPressed(KEY_ENTER)) estado->menu = 0;//retorna pro menu inicial
+            break;
+        case 7://operando normalmente
+            desenho(estado);
+            break;
+    }
+
 }
 
 int main() {
     InitWindow(LARGURA, ALTURA, "Tower Defense");
     SetTargetFPS(60);
+    int ultimasteclas[10] = {0};
+    int first = 0;
 
     ESTADO estado = {0};
-
-    // Escolher entre carregar um estado salvo ou gerar um novo mapa aleat�rio
-    //abreMenu(&estado);
-
-    //carregarMapaDeArquivo(&estado, "mapa.txt");
     estado.nivelatual = 1;
     carregaNivel(&estado);
+    estado.menu = 0;
+
+    //abreMenuInicio(&estado);
 
     // Loop principal do jogo
     while (!WindowShouldClose()) {
 
+        int k = GetKeyPressed();
 
-        estado = atualizarEstado(estado);
+        if (estado.menu != 5)estado = atualizarEstado(k, estado);//se não está pausado, atualiza estads
 
-        char text[100];
-        sprintf(text, "Fase atual: 0    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Monstros restantes: %d",
-               estado.recursos, estado.vidas, estado.qtdMonstros);
-
-        // Salvar estado quando a tecla 'S' � pressionada
-        if (IsKeyPressed(KEY_K)) {
-            salvarEstado("savegame.txt", &estado);
-        }
-
-        // Carregar estado quando a tecla 'L' � pressionada
-        if (IsKeyPressed(KEY_L)) {
-            carregarEstado("savegame.txt", &estado);
-        }
+        cheat(k, ultimasteclas, &estado);//checa últimas 11 teclas pra ver se trapaça funcionou
 
         BeginDrawing();
         ClearBackground(BLACK);
 
-        // Desenhar elementos do jogo
-        //for (int i = 0; i < estado.comprimentoTrilha; i++) {
-          //  DrawRectangleV(estado.trilha[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PINK);}
-
-        DrawRectangleV(estado.posJogador, (Vector2){QUAD_SIZE, QUAD_SIZE}, BLUE);
-        DrawRectangleV(estado.posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, DARKGRAY);
-
-        for (int i = 0; i < estado.qtdMonstros; i++) {
-            DrawRectangleV(estado.posMonstros[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, RED);
-        }
-
-        for (int i = 0; i < estado.qtdFrutinhas; i++) {
-            DrawRectangleV(estado.posFrutinhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, GREEN);
-        }
-
-
-        for (int i = 0; i < MAX_FRUTAS; i++) {
-            if (estado.posArmadilhas[i].x != 0 && estado.posArmadilhas[i].y != 0) {
-                DrawRectangleV(estado.posArmadilhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, YELLOW);
-            }
-        }
-
-         for (int i = 0; i < estado.qtdPortais; i++) {
-            DrawRectangleV(estado.posPortais[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PURPLE);
-        }
-
-        for (int i = 0; i < estado.qtdParedes; i++) {
-            DrawRectangleV(estado.posParedes[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, BROWN);
-        }
-
-        DrawText(text, 10, 3, 19, WHITE);
+        menuControle(&estado);//faz as checagens e direcionamentos
 
         if (estado.vitoria)
         {
-
             printf("vitoria");
             ClearBackground(BLACK);
             EndDrawing();
             estado.nivelatual ++;
             int e = estado.nivelatual;
-            //estado = {0};
             memset(&estado, 0, sizeof(estado));
             estado.nivelatual = e;
-            carregaNivel(&estado);
+            estado.menu = 4;//passa fase
+            if(estado.nivelatual > ULTIMAFASE)//venceu o jogo
+            {
+                estado.nivelatual = 1;
+                estado.menu = 6;
+            }
+                carregaNivel(&estado);
         }
 
         if (estado.derrota)
@@ -518,14 +593,9 @@ int main() {
            ClearBackground(BLACK);
            EndDrawing();
 
-            ESTADO estado = {0};
+           ESTADO estado = {0};
 
-            // Escolher entre carregar um estado salvo ou gerar um novo mapa aleat�rio
-            //abreMenu(&estado);
-
-            //carregarMapaDeArquivo(&estado, "mapa.txt");
-
-            carregaNivel(&estado);
+           carregaNivel(&estado);
 
         }
 
