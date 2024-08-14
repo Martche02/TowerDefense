@@ -457,6 +457,20 @@ void carregaNivel(ESTADO* estado)
     carregarMapaDeArquivo(estado, mapa);
 }
 
+void desenhaRambo(ESTADO *estado) {
+    // Definindo as cores
+    Color MARROM = (Color){100, 60, 0, 255};
+    Color PELE = {204, 153, 102, 255};
+
+    // Desenhando o boneco com 4 retângulos
+    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y}, (Vector2){QUAD_SIZE, 4}, BLACK);  // Parte preta
+    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 4}, (Vector2){QUAD_SIZE, 3}, RED);    // Parte vermelha
+    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 7}, (Vector2){QUAD_SIZE, 6}, PELE);   // Parte de pele
+    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 13}, (Vector2){QUAD_SIZE, 7}, MARROM); // Parte marrom escuro
+
+
+
+}
 
 void desenho(ESTADO *estado)
 {
@@ -464,8 +478,7 @@ void desenho(ESTADO *estado)
         sprintf(text, "Fase atual: %d    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Monstros restantes: %d",
                estado->nivelatual, estado->recursos, estado->vidas, estado->qtdMonstros);
 
-        DrawRectangleV(estado->posJogador, (Vector2){QUAD_SIZE, QUAD_SIZE}, BLUE);
-        DrawRectangleV(estado->posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, DARKGRAY);
+        DrawRectangleV(estado->posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, WHITE);
 
         for (int i = 0; i < estado->qtdMonstros; i++) {
             DrawRectangleV(estado->posMonstros[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, RED);
@@ -475,19 +488,23 @@ void desenho(ESTADO *estado)
             DrawRectangleV(estado->posFrutinhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, GREEN);
         }
 
-
+        //desenha armadilhas
         for (int i = 0; i < MAX_FRUTAS; i++) {
             if (estado->posArmadilhas[i].x != 0 && estado->posArmadilhas[i].y != 0) {
-                DrawRectangleV(estado->posArmadilhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, YELLOW);
+                DrawRectangle(estado->posArmadilhas[i].x + 8, estado->posArmadilhas[i].y, 4, QUAD_SIZE, BLACK);
+                DrawRectangle(estado->posArmadilhas[i].x , estado->posArmadilhas[i].y + 8, QUAD_SIZE, 4, BLACK);
             }
         }
 
+        //desenha jogador
+        desenhaRambo(estado);
+
          for (int i = 0; i < estado->qtdPortais; i++) {
-            DrawRectangleV(estado->posPortais[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, PURPLE);
+            DrawRectangleV(estado->posPortais[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, BROWN);
         }
 
         for (int i = 0; i < estado->qtdParedes; i++) {
-            DrawRectangleV(estado->posParedes[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, BROWN);
+            DrawRectangleV(estado->posParedes[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, DARKGRAY);
         }
 
         DrawText(text, 10, 3, 19, WHITE);
@@ -499,54 +516,203 @@ void novaFase(ESTADO *estado)//funcao para tela entre fases
     if (IsKeyPressed(KEY_ENTER))estado->menu = 7;//continua
 }
 
-void menuControle(ESTADO *estado)//checa condicao a cada ciclo
+void cutscene()
 {
-    switch(estado->menu)
+    // Inicializa a tela para a cutscene
+    ClearBackground(BLACK);
+
+    // Texto a ser exibido
+    const char *frase1 = "\n\n\n   Nas entranhas das linhas inimigas, um ponto vital foi \n\n\n             capturado pelas tropas dos EUA.";
+    const char *frase2 = " Fatalmente, a posição desta instalação foi comprometida.\n\n\n        Unidades inimigas foram detectadas ao Leste.";
+    const char *frase3 = "  Ela precisará resistir até a chegada de novas tropas.";
+    const char *frase4 = "   Agora, resta apenas um homem que pode defendê-la.";
+
+    // Estado atual da cutscene
+    int step = 0;
+
+    while (!WindowShouldClose())
     {
-        case 0://menu inicio
-            DrawText("Menu\n\n\n\nNovo Jogo(N)\n\n\n\nCarregar Jogo(C)\n\n\n\nSair(Q)", 400, 150, 40, WHITE);
-            if (IsKeyPressed(KEY_N)) estado->menu = 1;//novo jogo
-            if (IsKeyPressed(KEY_C)) estado->menu = 2;//carrega save
-            if (IsKeyPressed(KEY_Q)) estado->menu = 3;//sai
+        BeginDrawing();
+        ClearBackground(BLACK);
+
+        switch(step)
+        {
+            case 0:
+                break;
+
+            case 1:
+                DrawText(frase1, 10, 10, 40, WHITE);
+                break;
+
+            case 2:
+                DrawText(frase1, 10, 10, 40, WHITE);
+                DrawText(frase2, 10, 190, 40, WHITE);
+                break;
+
+            case 3:
+                DrawText(frase1, 10, 10, 40, WHITE);
+                DrawText(frase2, 10, 190, 40, WHITE);
+                DrawText(frase3, 10, 320, 40, WHITE);
+                break;
+
+             case 4:
+                DrawText(frase1, 10, 10, 40, WHITE);
+                DrawText(frase2, 10, 190, 40, WHITE);
+                DrawText(frase3, 10, 320, 40, WHITE);
+                DrawText(frase4, 10, 400, 40, WHITE);
+                break;
+        }
+
+        EndDrawing();
+
+        // Avança para o próximo passo se a tecla Enter for pressionada
+        if (IsKeyPressed(KEY_ENTER))
+        {
+            step++;
+            // Se `step` for maior que 1, a cutscene termina
+            if (step > 4)
+            {
+                break;
+            }
+        }
+    }
+}
+
+void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado) // checa condicao a cada ciclo
+{
+    switch (estado->menu)
+    {
+        case 0: // menu inicio
+            *contagemMenu = 3; // número de opções no menu inicial
+            Texture2D rambo1 = LoadTexture("rambo2.png");
+            DrawTexture(rambo1, 0, 0, WHITE);
+
+            // Navegação pelo menu
+            if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
+            if (IsKeyPressed(KEY_UP)) *selecionado = (*selecionado - 1 + *contagemMenu) % *contagemMenu;
+
+            // Desenha as opções do menu com a seta de seleção
+            for (int i = 0; i < *contagemMenu; i++) {
+                if (i == *selecionado) {
+                    DrawText(">", 20, 148 + i * 81, 50, BLACK);
+                }
+            }
+
+            // Ação baseada na opção selecionada
+            if (IsKeyPressed(KEY_ENTER)) {
+                switch (*selecionado) {
+                    case 0:
+                        estado->menu = 1;
+                        UnloadTexture(rambo1); // Descarrega a textura após o uso
+                        break; // novo jogo
+                    case 1:
+                        estado->menu = 2;
+                        UnloadTexture(rambo1); // Descarrega a textura após o uso
+                        break; // carregar jogo
+                    case 2:
+                        estado->menu = 3;
+                        UnloadTexture(rambo1); // Descarrega a textura após o uso
+                        break; // sair
+                }
+            }
             break;
-        case 1://novo jogo
+
+        case 1: // novo jogo
+            cutscene();
             estado->nivelatual = 1;
-            carregaNivel(estado);//reseta
-            estado->menu = 7;//continua
+            carregaNivel(estado); // reseta o nível
+            estado->menu = 7; // continua o jogo
             break;
-        case 2://carregar
+
+        case 2: // carregar
             carregarEstado("savegame.txt", estado);
+            estado->menu = 7; // continua o jogo
             break;
-        case 3://sair
+
+        case 3: // sair
             CloseWindow();
             break;
-        case 4://nova fase
-            novaFase(estado);//funcao para tela entre fases
+
+        case 4: // nova fase
+            novaFase(estado); // função para tela entre fases
             break;
-        case 5: //menu de pause
-            DrawText("Pausado\n\n\n\nContinuar(C)\n\n\n\nCarregar Jogo(L)\n\n\n\nSalvar jogo(S)\n\n\n\nVoltar ao menu(V)\n\n\n\nSair(F)", 400, 50, 40, WHITE);
-            if (IsKeyPressed(KEY_C)) estado->menu = 7;//continua
-            if (IsKeyPressed(KEY_L)) carregarEstado("savegame.txt", estado);
-            if (IsKeyPressed(KEY_S)) salvarEstado("savegame.txt", estado);
-            if (IsKeyPressed(KEY_V)) estado->menu = 0;//menu inicial
-            if (IsKeyPressed(KEY_F)) estado->menu = 3;//fecha
+
+        case 5: // menu de pause
+            *contagemMenu = 5;
+            DrawText("Pausado", 400, 50, 40, WHITE);
+            DrawText("Continuar", 400, 150, 40, WHITE);
+            DrawText("Carregar Jogo", 400, 210, 40, WHITE);
+            DrawText("Salvar Jogo", 400, 270, 40, WHITE);
+            DrawText("Voltar ao Menu", 400, 330, 40, WHITE);
+            DrawText("Sair", 400, 390, 40, WHITE);
+
+            // Navegação pelo menu de pause
+            if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
+            if (IsKeyPressed(KEY_UP)) *selecionado = (*selecionado - 1 + *contagemMenu) % *contagemMenu;
+
+            for (int i = 0; i < *contagemMenu; i++) {
+                if (i == *selecionado) {
+                    DrawText(">", 350, 150 + i * 60, 40, WHITE);
+                }
+            }
+
+            // Ação baseada na opção selecionada
+            if (IsKeyPressed(KEY_ENTER)) {
+                switch (*selecionado) {
+                    case 0: estado->menu = 7; break; // continuar jogo
+                    case 1: carregarEstado("savegame.txt", estado); break; // carregar jogo
+                    case 2: salvarEstado("savegame.txt", estado); break; // salvar jogo
+                    case 3: estado->menu = 0; break; // voltar ao menu inicial
+                    case 4: estado->menu = 3; break; // sair
+                }
+            }
             break;
-        case 6://venceu jogo
+
+        case 6: // venceu jogo
             DrawText("Parabéns!!!\n\n\n\nAperte ENTER para voltar ao MENU", 300, 200, 40, WHITE);
-            if (IsKeyPressed(KEY_ENTER)) estado->menu = 0;//retorna pro menu inicial
+            if (IsKeyPressed(KEY_ENTER)) estado->menu = 0; // retorna ao menu inicial
             break;
-        case 7://operando normalmente
+
+        case 7: // operando normalmente
             desenho(estado);
             break;
-    }
 
+        case 8: // game over
+            *contagemMenu = 3;
+            DrawText("GAME OVER", 300, 200, 40, WHITE);
+            DrawText("Voltar ao MENU", 300, 270, 40, WHITE);
+            DrawText("Carregar Jogo Salvo", 300, 330, 40, WHITE);
+            DrawText("Reiniciar", 300, 390, 40, WHITE);
+
+            // Navegação pelo menu de game over
+            if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
+            if (IsKeyPressed(KEY_UP)) *selecionado = (*selecionado - 1 + *contagemMenu) % *contagemMenu;
+
+            for (int i = 0; i < *contagemMenu; i++) {
+                if (i == *selecionado) {
+                    DrawText(">", 250, 270 + i * 60, 40, WHITE);
+                }
+            }
+
+            // Ação baseada na opção selecionada
+            if (IsKeyPressed(KEY_ENTER)) {
+                switch (*selecionado) {
+                    case 0: estado->menu = 0; break; // voltar ao menu inicial
+                    case 1: estado->menu = 2; break; // carregar jogo salvo
+                    case 2: estado->menu = 1; break; // reiniciar jogo
+                }
+            }
+            break;
+    }
 }
+
 
 int main() {
     InitWindow(LARGURA, ALTURA, "Tower Defense");
     SetTargetFPS(60);
     int ultimasteclas[10] = {0};
-    int first = 0;
+    int contagemMenu;
+    int selecionado;
 
     ESTADO estado = {0};
     estado.nivelatual = 1;
@@ -565,9 +731,9 @@ int main() {
         cheat(k, ultimasteclas, &estado);//checa últimas 11 teclas pra ver se trapaça funcionou
 
         BeginDrawing();
-        ClearBackground(BLACK);
+        ClearBackground(DARKGREEN);
 
-        menuControle(&estado);//faz as checagens e direcionamentos
+        menuControle(&estado, &contagemMenu, &selecionado);//faz as checagens e direcionamentos
 
         if (estado.vitoria)
         {
@@ -590,11 +756,7 @@ int main() {
         if (estado.derrota)
         {
            printf("derrota");
-           ClearBackground(BLACK);
-           EndDrawing();
-
-           ESTADO estado = {0};
-
+           estado.menu = 8;
            carregaNivel(&estado);
 
         }
