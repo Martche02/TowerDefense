@@ -23,7 +23,7 @@ W                   .                                      W
 W                   .                                      W
 W             .......                                      W
 W             .                   J                        W
-W             .                   RRRRRRRRRRRRR            W
+W             .                   RRRRRRRRRRRRRRR          W
 W             .                                            W
 W             .                                            W
 W             ............................................IW

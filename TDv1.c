@@ -13,7 +13,7 @@
 #define MAX_FRUTAS 50
 #define MAX_PAREDES 1000
 #define MAX_PORTAIS 100
-#define ULTIMAFASE 2
+#define ULTIMAFASE 3
 
 // Defini��o da estrutura Estado
 typedef struct Estado {
@@ -40,6 +40,7 @@ typedef struct Estado {
     int recursos;
     int nivelatual;
     int menu;
+    int pagina;
 }ESTADO;
 
 // Fun��o para verificar colis�o
@@ -261,6 +262,8 @@ ESTADO atualizarEstado(int k, ESTADO estado) {
 
     colisaoJogadorRecurso(&estado, novaPosJogador);
 
+    colisaoJogadorPortal(k, &estado, &novaPosJogador);
+
     colisaoJogadorParede(&estado, &novaPosJogador);
 
 
@@ -301,8 +304,6 @@ ESTADO atualizarEstado(int k, ESTADO estado) {
         estado.derrota = true;
     if (estado.qtdMonstros == 0 && estado.tempo>180)
         estado.vitoria = true;
-
-    colisaoJogadorPortal(k, &estado, &novaPosJogador);
 
      //Colis�o jogador/monstro
     for (int i = 0; i < estado.qtdMonstros - 1; i++) {
@@ -474,8 +475,11 @@ void desenhaRambo(ESTADO *estado) {
 
 void desenho(ESTADO *estado)
 {
+        Texture2D grama = LoadTexture("grama.png");
+        DrawTexture(grama, 0, 0, WHITE);
+
         char text[100];
-        sprintf(text, "Fase atual: %d    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Monstros restantes: %d",
+        sprintf(text, "Fase atual: %d    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Inimigos restantes: %d",
                estado->nivelatual, estado->recursos, estado->vidas, estado->qtdMonstros);
 
         DrawRectangleV(estado->posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, WHITE);
@@ -484,27 +488,34 @@ void desenho(ESTADO *estado)
             DrawRectangleV(estado->posMonstros[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, RED);
         }
 
+        //desenha recursos
+        Texture2D recursos = LoadTexture("recursos.png");
         for (int i = 0; i < estado->qtdFrutinhas; i++) {
-            DrawRectangleV(estado->posFrutinhas[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, GREEN);
+            DrawTexture(recursos, estado->posFrutinhas[i].x, estado->posFrutinhas[i].y, WHITE);
         }
 
         //desenha armadilhas
         for (int i = 0; i < MAX_FRUTAS; i++) {
             if (estado->posArmadilhas[i].x != 0 && estado->posArmadilhas[i].y != 0) {
-                DrawRectangle(estado->posArmadilhas[i].x + 8, estado->posArmadilhas[i].y, 4, QUAD_SIZE, BLACK);
-                DrawRectangle(estado->posArmadilhas[i].x , estado->posArmadilhas[i].y + 8, QUAD_SIZE, 4, BLACK);
+                DrawRectangle(estado->posArmadilhas[i].x + 8, estado->posArmadilhas[i].y, 4, QUAD_SIZE, DARKGRAY);
+                DrawRectangle(estado->posArmadilhas[i].x , estado->posArmadilhas[i].y + 8, QUAD_SIZE, 4, DARKGRAY);
             }
         }
 
         //desenha jogador
         desenhaRambo(estado);
 
-         for (int i = 0; i < estado->qtdPortais; i++) {
-            DrawRectangleV(estado->posPortais[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, BROWN);
+        //desenha buracos
+        Texture2D buraco = LoadTexture("buraco.png");
+        for (int i = 0; i < estado->qtdPortais; i++) {
+            DrawTexture(buraco, estado->posPortais[i].x, estado->posPortais[i].y, WHITE);
+
         }
 
+        //desenho barreiras
+        Texture2D arvores = LoadTexture("arvore.png");
         for (int i = 0; i < estado->qtdParedes; i++) {
-            DrawRectangleV(estado->posParedes[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, DARKGRAY);
+            DrawTexture(arvores, estado->posParedes[i].x, estado->posParedes[i].y, WHITE);
         }
 
         DrawText(text, 10, 3, 19, WHITE);
@@ -516,10 +527,11 @@ void novaFase(ESTADO *estado)//funcao para tela entre fases
     if (IsKeyPressed(KEY_ENTER))estado->menu = 7;//continua
 }
 
-void cutscene()
+int cutscene(ESTADO *estado)
 {
-    // Inicializa a tela para a cutscene
+    //Inicializa a tela para a cutscene
     ClearBackground(BLACK);
+
 
     // Texto a ser exibido
     const char *frase1 = "\n\n\n   Nas entranhas das linhas inimigas, um ponto vital foi \n\n\n             capturado pelas tropas dos EUA.";
@@ -527,15 +539,9 @@ void cutscene()
     const char *frase3 = "  Ela precisará resistir até a chegada de novas tropas.";
     const char *frase4 = "   Agora, resta apenas um homem que pode defendê-la.";
 
-    // Estado atual da cutscene
-    int step = 0;
+    // pagina atual da cutscene
 
-    while (!WindowShouldClose())
-    {
-        BeginDrawing();
-        ClearBackground(BLACK);
-
-        switch(step)
+        switch(estado->pagina)
         {
             case 0:
                 break;
@@ -561,31 +567,29 @@ void cutscene()
                 DrawText(frase3, 10, 320, 40, WHITE);
                 DrawText(frase4, 10, 400, 40, WHITE);
                 break;
-        }
 
-        EndDrawing();
+             case 5:
+                return 1;
+                break;
+        }
 
         // Avança para o próximo passo se a tecla Enter for pressionada
         if (IsKeyPressed(KEY_ENTER))
         {
-            step++;
-            // Se `step` for maior que 1, a cutscene termina
-            if (step > 4)
-            {
-                break;
-            }
+            estado->pagina++;
         }
+        return 0;
     }
-}
 
-void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado) // checa condicao a cada ciclo
+
+void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music playlist[], int musicaAtual) // checa condicao a cada ciclo
 {
     switch (estado->menu)
     {
         case 0: // menu inicio
             *contagemMenu = 3; // número de opções no menu inicial
-            Texture2D rambo1 = LoadTexture("rambo2.png");
-            DrawTexture(rambo1, 0, 0, WHITE);
+            Texture2D imagemmenu = LoadTexture("imagemmenu2.png");
+            DrawTexture(imagemmenu, 0, 0, WHITE);
 
             // Navegação pelo menu
             if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
@@ -602,26 +606,35 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado) // checa 
             if (IsKeyPressed(KEY_ENTER)) {
                 switch (*selecionado) {
                     case 0:
+                        UnloadTexture(imagemmenu); // Descarrega a textura após o uso
+                        StopMusicStream(playlist[musicaAtual]);  // Para a música
                         estado->menu = 1;
-                        UnloadTexture(rambo1); // Descarrega a textura após o uso
                         break; // novo jogo
                     case 1:
+                        UnloadTexture(imagemmenu); // Descarrega a textura após o uso
+                        StopMusicStream(playlist[musicaAtual]);  // Para a música
                         estado->menu = 2;
-                        UnloadTexture(rambo1); // Descarrega a textura após o uso
                         break; // carregar jogo
                     case 2:
+                        UnloadTexture(imagemmenu); // Descarrega a textura após o uso
+                        StopMusicStream(playlist[musicaAtual]);  // Para a música
                         estado->menu = 3;
-                        UnloadTexture(rambo1); // Descarrega a textura após o uso
                         break; // sair
                 }
             }
             break;
 
         case 1: // novo jogo
-            cutscene();
-            estado->nivelatual = 1;
-            carregaNivel(estado); // reseta o nível
-            estado->menu = 7; // continua o jogo
+            if (cutscene(estado) == 1)
+            {
+                estado->nivelatual = 1;
+                carregaNivel(estado); // reseta o nível
+                estado->menu = 7; // continua o jogo
+            }
+            else
+            {
+                estado->menu = 1;
+            }
             break;
 
         case 2: // carregar
@@ -638,13 +651,17 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado) // checa 
             break;
 
         case 5: // menu de pause
+
+            Texture2D imagempause = LoadTexture("imagempause.png");
+            DrawTexture(imagempause, 0, 0, WHITE);
+
             *contagemMenu = 5;
-            DrawText("Pausado", 400, 50, 40, WHITE);
-            DrawText("Continuar", 400, 150, 40, WHITE);
-            DrawText("Carregar Jogo", 400, 210, 40, WHITE);
-            DrawText("Salvar Jogo", 400, 270, 40, WHITE);
-            DrawText("Voltar ao Menu", 400, 330, 40, WHITE);
-            DrawText("Sair", 400, 390, 40, WHITE);
+            DrawText("Pausado", 400, 100, 40, WHITE);
+            DrawText("Continuar", 400, 200, 40, WHITE);
+            DrawText("Carregar Jogo", 400, 260, 40, WHITE);
+            DrawText("Salvar Jogo", 400, 320, 40, WHITE);
+            DrawText("Voltar ao Menu", 400, 380, 40, WHITE);
+            DrawText("Sair", 400, 440, 40, WHITE);
 
             // Navegação pelo menu de pause
             if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
@@ -652,18 +669,33 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado) // checa 
 
             for (int i = 0; i < *contagemMenu; i++) {
                 if (i == *selecionado) {
-                    DrawText(">", 350, 150 + i * 60, 40, WHITE);
+                    DrawText(">", 350, 200 + i * 60, 40, WHITE);
                 }
             }
 
             // Ação baseada na opção selecionada
             if (IsKeyPressed(KEY_ENTER)) {
                 switch (*selecionado) {
-                    case 0: estado->menu = 7; break; // continuar jogo
-                    case 1: carregarEstado("savegame.txt", estado); break; // carregar jogo
-                    case 2: salvarEstado("savegame.txt", estado); break; // salvar jogo
-                    case 3: estado->menu = 0; break; // voltar ao menu inicial
-                    case 4: estado->menu = 3; break; // sair
+                    case 0:
+                        estado->menu = 7;
+                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        break; // continuar jogo
+                    case 1:
+                        carregarEstado("savegame.txt", estado);
+                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        break; // carregar jogo
+                    case 2:
+                        salvarEstado("savegame.txt", estado);
+                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        break; // salvar jogo
+                    case 3:
+                        estado->menu = 0;
+                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        break; // voltar ao menu inicial
+                    case 4:
+                        estado->menu = 3;
+                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        break; // sair
                 }
             }
             break;
@@ -679,6 +711,7 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado) // checa 
 
         case 8: // game over
             *contagemMenu = 3;
+            ClearBackground(BLACK);
             DrawText("GAME OVER", 300, 200, 40, WHITE);
             DrawText("Voltar ao MENU", 300, 270, 40, WHITE);
             DrawText("Carregar Jogo Salvo", 300, 330, 40, WHITE);
@@ -703,6 +736,23 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado) // checa 
                 }
             }
             break;
+
+    }
+}
+
+selecionaMusica(ESTADO *estado, int *musicaAtual)
+{
+    switch(estado->menu)
+    {
+        case 0:
+            *musicaAtual = 0;
+            break;
+        case 1:
+            *musicaAtual = 2;
+            break;
+        case 7:
+            *musicaAtual = 1;
+            break;
     }
 }
 
@@ -713,16 +763,33 @@ int main() {
     int ultimasteclas[10] = {0};
     int contagemMenu;
     int selecionado;
+    int musicaAtual;
 
     ESTADO estado = {0};
     estado.nivelatual = 1;
     carregaNivel(&estado);
     estado.menu = 0;
 
-    //abreMenuInicio(&estado);
+    // Inicializa o dispositivo de áudio
+    InitAudioDevice();
+
+    Music playlist[10];
+
+    playlist[0] = LoadMusicStream("musicamenu.mp3");
+    playlist[1] = LoadMusicStream("musicafases.mp3");
+    playlist[2] = LoadMusicStream("musicacutscene.mp3");
+
 
     // Loop principal do jogo
     while (!WindowShouldClose()) {
+
+        selecionaMusica(&estado, &musicaAtual);
+        printf("%d: musica atual", musicaAtual);
+
+        // Toca a música
+        PlayMusicStream(playlist[musicaAtual]);
+
+        UpdateMusicStream(playlist[musicaAtual]);
 
         int k = GetKeyPressed();
 
@@ -731,9 +798,8 @@ int main() {
         cheat(k, ultimasteclas, &estado);//checa últimas 11 teclas pra ver se trapaça funcionou
 
         BeginDrawing();
-        ClearBackground(DARKGREEN);
 
-        menuControle(&estado, &contagemMenu, &selecionado);//faz as checagens e direcionamentos
+        menuControle(&estado, &contagemMenu, &selecionado, playlist, musicaAtual);//faz as checagens e direcionamentos
 
         if (estado.vitoria)
         {
@@ -762,7 +828,11 @@ int main() {
         }
 
         EndDrawing();
+
     }
+
+    // Fecha o dispositivo de áudio
+    CloseAudioDevice();
 
     CloseWindow();
     return 0;
