@@ -13,7 +13,7 @@
 #define MAX_FRUTAS 50
 #define MAX_PAREDES 1000
 #define MAX_PORTAIS 100
-#define ULTIMAFASE 3
+#define ULTIMAFASE 4
 
 // Defini��o da estrutura Estado
 typedef struct Estado {
@@ -404,12 +404,12 @@ void carregarMapaDeArquivo(ESTADO* estado, const char* caminhoArquivo) {
     fclose(arquivo);
 
     // Função auxiliar para verificar se a posição está dentro dos limites do mapa
-    bool dentroDosLimites(int x, int y) {
+    int dentroDosLimites(int x, int y) {
         return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
     }
 
     // Função auxiliar para verificar se a posição já está na trilha
-    bool jaNaTrilha(Vector2 pos, Vector2* trilha, int comprimentoTrilha) {
+    int jaNaTrilha(Vector2 pos, Vector2* trilha, int comprimentoTrilha) {
         for (int i = 0; i < comprimentoTrilha; i++) {
             if (trilha[i].x == pos.x && trilha[i].y == pos.y) {
                 return true;
@@ -424,7 +424,7 @@ void carregarMapaDeArquivo(ESTADO* estado, const char* caminhoArquivo) {
 
     Vector2 atual = estado->trilha[0];
     while (true) {
-        bool encontrado = false;
+        int encontrado = false;
         for (int i = 0; i < 4; i++) {
             int nx = atual.x / QUAD_SIZE + dx[i];
             int ny = atual.y / QUAD_SIZE + dy[i];
@@ -468,8 +468,6 @@ void desenhaRambo(ESTADO *estado) {
     DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 4}, (Vector2){QUAD_SIZE, 3}, RED);    // Parte vermelha
     DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 7}, (Vector2){QUAD_SIZE, 6}, PELE);   // Parte de pele
     DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 13}, (Vector2){QUAD_SIZE, 7}, MARROM); // Parte marrom escuro
-
-
 
 }
 
@@ -523,6 +521,7 @@ void desenho(ESTADO *estado)
 
 void novaFase(ESTADO *estado)//funcao para tela entre fases
 {
+    ClearBackground(BLACK);
     DrawText("Passou de fase!\n\n\n\nAperte ENTER para continuar", 250, 150, 40, WHITE);
     if (IsKeyPressed(KEY_ENTER))estado->menu = 7;//continua
 }
@@ -701,6 +700,7 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
             break;
 
         case 6: // venceu jogo
+            ClearBackground(BLACK);
             DrawText("Parabéns!!!\n\n\n\nAperte ENTER para voltar ao MENU", 300, 200, 40, WHITE);
             if (IsKeyPressed(KEY_ENTER)) estado->menu = 0; // retorna ao menu inicial
             break;
