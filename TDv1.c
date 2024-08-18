@@ -9,42 +9,56 @@
 #define QUAD_SIZE 20
 #define MAP_WIDTH (LARGURA / QUAD_SIZE)
 #define MAP_HEIGHT (ALTURA / QUAD_SIZE)
-#define MAX_MONSTROS 7
-#define MAX_FRUTAS 50
+#define MAX_INIMIGOS 50
+#define MAX_RECURSOS 50
 #define MAX_PAREDES 1000
 #define MAX_PORTAIS 100
 #define ULTIMAFASE 4
+#define VELOCIDADE 60
+
+
+typedef struct Posicao{
+    int x;
+    int y;
+} POSICAO;
+
+typedef struct inimigo{
+    int dx;
+    int dy;
+    int vida;
+    POSICAO pos;
+} INIMIGO;
+
 
 // Defini��o da estrutura Estado
 typedef struct Estado {
     int vidas;
     int vidaJogador;
-    int qtdMonstros;
-    int qtdFrutinhas;
+    int qtdInimigos;
+    int qtdRecursos;
+    int qtdArmadilhas;
     int qtdPortais;
     int qtdParedes;
-    Vector2 posMonstros[MAX_MONSTROS];
-    int indexMonstro[MAX_MONSTROS];  // �ndice atual na trilha
-    Vector2 posFrutinhas[MAX_FRUTAS];
-    Vector2 posPortais[MAX_PORTAIS];
-    Vector2 posParedes[MAX_PAREDES];
-    Vector2 posJogador;
-    Vector2 posArmadilhas[MAX_FRUTAS];
-    Vector2 posBase;
+    POSICAO posRecursos[MAX_RECURSOS];
+    POSICAO posPortais[MAX_PORTAIS];
+    POSICAO posParedes[MAX_PAREDES];
+    POSICAO posJogador;
+    POSICAO posArmadilhas[MAX_RECURSOS];
+    POSICAO posBase;
+    char mapa[MAP_HEIGHT][MAP_WIDTH];
     int vitoria;
     int derrota;
     int tempo;
-    Vector2 trilha[MAP_WIDTH * MAP_HEIGHT];
-    int comprimentoTrilha;
-    int spawTimes[MAX_MONSTROS];
     int recursos;
     int nivelatual;
     int menu;
     int pagina;
+    float volume;
+    INIMIGO inimigo[MAX_INIMIGOS];
 }ESTADO;
 
-// Fun��o para verificar colis�o
-int verificarColisao(Vector2 a, Vector2 b) {
+/// Fun��o para verificar colis�o
+int verificarColisao(POSICAO a, POSICAO b) {
     return (a.x == b.x && a.y == b.y);
 }
 
@@ -52,7 +66,7 @@ int verificarColisao(Vector2 a, Vector2 b) {
 void carregarEstado(char* filename, ESTADO* estado) {
     FILE* file = fopen(filename, "r+b");
     if (!file) {
-        perror("Erro ao abrir arquivo para carregar");
+        printf("Erro ao abrir arquivo para carregar");
         return;
     }
     fread(estado, sizeof(ESTADO), 1, file);
@@ -63,7 +77,7 @@ void carregarEstado(char* filename, ESTADO* estado) {
 void salvarEstado(char* filename, ESTADO* estado) {
     FILE* file = fopen(filename, "wb");
     if (!file) {
-        perror("Erro ao abrir arquivo para salvar");
+        printf("Erro ao abrir arquivo para salvar");
         return;
     }
     fwrite(estado, sizeof(ESTADO), 1, file);
@@ -84,17 +98,16 @@ int cheat(int k, int *ultimasteclas, ESTADO* estado)
         ultimasteclas[0] = k;
         printf("%d\n",ultimasteclas[0]);
     }
-    //printf("%d\n", ultimasteclas[0]);
     // Compara as duas arrays para verificar se o Konami Code foi inserido
     if (memcmp(ultimasteclas, códigoTrapaca, sizeof(códigoTrapaca)) == 0) {
-        estado->vitoria = true;
+        estado->vitoria = 1;
         ultimasteclas[0] = 0;
     }
 
 }
 
 
-void getAcao(int k, ESTADO *estado, Vector2 *novaPosJogador)
+void getAcao(int k, ESTADO *estado, POSICAO *novaPosJogador)
 {
     switch(k)
     {
@@ -121,12 +134,12 @@ void getAcao(int k, ESTADO *estado, Vector2 *novaPosJogador)
         case 71:
             // Colocar armadilha
             if (estado->recursos > 0) {
-                for (int i = 0; i < MAX_FRUTAS; i++) {
-                    if (estado->posArmadilhas[i].x == 0 && estado->posArmadilhas[i].y == 0) {
-                        estado->posArmadilhas[i] = estado->posJogador;
-                        estado->recursos--;
-                        break;
-                    }
+                if ('A' != estado->mapa[novaPosJogador->y/20][novaPosJogador->x/20]){
+                    estado->mapa[novaPosJogador->y/20][novaPosJogador->x/20]='A';
+                    estado->posArmadilhas[estado->qtdArmadilhas].x=novaPosJogador->x;
+                    estado->posArmadilhas[estado->qtdArmadilhas].y=novaPosJogador->y;
+                    estado->recursos--;
+                    estado->qtdArmadilhas++;
                 }
             }
             break;
@@ -135,130 +148,232 @@ void getAcao(int k, ESTADO *estado, Vector2 *novaPosJogador)
     }
 }
 
-void novasposMonstros(ESTADO *estado, Vector2 novaPosMonstros[])
+void novaposinimigo(INIMIGO *inimigo)
 {
-// Atualizar posi��o dos monstros
-    for (int i = 0; i < estado->qtdMonstros; i++) {
-        if (estado->indexMonstro[i] < estado->comprimentoTrilha - 1) {
-            if (estado->tempo % 60 == 0) {
-                estado->indexMonstro[i]++;
-            }
-            novaPosMonstros[i] = estado->trilha[estado->indexMonstro[i]];
-        } else {
-            novaPosMonstros[i] = estado->posMonstros[i];
-        }
-    }
+    inimigo->pos.x += inimigo->dx * QUAD_SIZE;
+    inimigo->pos.y -= inimigo->dy * QUAD_SIZE;
 }
 
-void colisaoJogadorRecurso(ESTADO *estado, Vector2 novaPosJogador)
+void colisaoJogadorRecurso(ESTADO *estado, POSICAO novaPosJogador)
 {
-// Colis�o jogador/recurso
-    for (int i = 0; i < estado->qtdFrutinhas; i++) {
-        if (verificarColisao(novaPosJogador, estado->posFrutinhas[i])) {
+// Colisão jogador/recurso
+    for (int i = 0; i < estado->qtdRecursos; i++) {
+        if (verificarColisao(novaPosJogador, estado->posRecursos[i])) {
             estado->recursos++;
-            estado->posFrutinhas[i] = (Vector2){-1, -1}; // Remover frutinha
+            estado->posRecursos[i] = (POSICAO){-1, -1}; // Remover frutinha
         }
     }
 }
 
-void colisaoJogadorParede(ESTADO *estado, Vector2 *novaPosJogador)
+void colisaoJogadorParede(ESTADO *estado, POSICAO *novaPosJogador)
 {
-// Colis�o jogador/parede
-    for (int i = 0; i < estado->qtdParedes; i++) {
-        if (verificarColisao(*novaPosJogador, estado->posParedes[i])) {
-            *novaPosJogador = estado->posJogador; // Reverter posi��o
-        }
+    if ('W' == estado->mapa[novaPosJogador->y/20][novaPosJogador->x/20]) {
+        *novaPosJogador = estado->posJogador; // Reverte posição
     }
 }
 
-void colisaoJogadorPortal(int k, ESTADO *estado, Vector2 *novaPosJogador)
+void colisaoJogadorPortal(int k, ESTADO *estado, POSICAO *novaPosJogador)
 {
     // Colis�o jogador/portal
-    for (int i = 0; i < estado->qtdPortais; i++) {
-        if (verificarColisao(*novaPosJogador, estado->posPortais[i])) {
-            // Verifica se as teclas WASD est�o pressionadas
-            int pos;
-            switch(k)
+    if ('H' == estado->mapa[novaPosJogador->y/20][novaPosJogador->x/20])
+    {
+        int pos;
+        switch(k)
+        {
+            case 87:
+            case 265:
+                 // Mover para cima
+                pos = ALTURA;
+                for (int j = 0; j < estado->qtdPortais; j++) {
+                        if(estado->posPortais[j].x == novaPosJogador->x && estado->posPortais[j].y < pos){
+                            pos = estado->posPortais[j].y;
+                        }
+                }
+                if(pos!=ALTURA){
+                    novaPosJogador->y = pos-QUAD_SIZE;
+                } else{
+                    novaPosJogador->y -= QUAD_SIZE;
+                }
+
+                break;
+
+            case 83:
+            case 264:
+               //pra baixo
+                pos = 0;
+                for (int j = 0; j < estado->qtdPortais; j++) {
+                        if(estado->posPortais[j].x == novaPosJogador->x && estado->posPortais[j].y >pos){
+                            pos = estado->posPortais[j].y;
+                        }
+                }
+                if(pos!=0){
+                    novaPosJogador->y = pos+QUAD_SIZE;
+                } else{
+                    novaPosJogador->y += QUAD_SIZE;
+                }
+                break;
+
+            case 65:
+            case 263:
+                 // Mover para esquerda
+                pos = LARGURA;
+                for (int j = 0; j < estado->qtdPortais; j++) {
+                        if(estado->posPortais[j].y == novaPosJogador->y && estado->posPortais[j].x <pos){
+                            pos = estado->posPortais[j].x;
+                        }
+                }
+                if(pos!=LARGURA){
+                    novaPosJogador->x = pos-QUAD_SIZE;
+                } else{
+                    novaPosJogador->x -= QUAD_SIZE;
+                }
+
+                break;
+
+            case 68:
+            case 262:
+                pos = 0;
+                for (int j = 0; j < estado->qtdPortais; j++) {
+                        if(estado->posPortais[j].y == novaPosJogador->y && estado->posPortais[j].x >pos){
+                            pos = estado->posPortais[j].x;
+                        }
+                }
+                if(pos!=0){
+                    novaPosJogador->x = pos+QUAD_SIZE;
+                } else{
+                    novaPosJogador->x += QUAD_SIZE;
+                }
+                break;
+
+        }
+
+    }
+}
+
+void colisaoInimigoParede(ESTADO *estado)
+{
+    int i, guarda_dx, guarda_dy;
+    for (i = 0; i < MAX_INIMIGOS; i++){
+        if(estado->inimigo[i].vida == 1){
+            if ('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20] || 'H' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
             {
-                case 87:
-                case 265:
-                     // Mover para cima
-                    pos = ALTURA;
-                    for (int j = 0; j < estado->qtdPortais; j++) {
-                            if(estado->posPortais[j].x == novaPosJogador->x && estado->posPortais[j].y < pos){
-                                pos = estado->posPortais[j].y;
-                            }
-                    }
-                    if(pos!=ALTURA){
-                        novaPosJogador->y = pos-QUAD_SIZE;
-                    } else{
-                        novaPosJogador->y -= QUAD_SIZE;
-                    }
+                estado->inimigo[i].pos.x -= estado->inimigo[i].dx * QUAD_SIZE;
+                estado->inimigo[i].pos.y += estado->inimigo[i].dy * QUAD_SIZE;
+                guarda_dx=estado->inimigo[i].dx;
+                guarda_dy=estado->inimigo[i].dy;
 
-                    break;
+                if(estado->inimigo[i].dx != 0)
+                {
+                    estado->inimigo[i].dx=0;
+                    estado->inimigo[i].dy=1;
+                    novaposinimigo(&estado->inimigo[i]);
 
-                case 83:
-                case 264:
-                   //pra baixo
-                    pos = 0;
-                    for (int j = 0; j < estado->qtdPortais; j++) {
-                            if(estado->posPortais[j].x == novaPosJogador->x && estado->posPortais[j].y >pos){
-                                pos = estado->posPortais[j].y;
-                            }
-                    }
-                    if(pos!=0){
-                        novaPosJogador->y = pos+QUAD_SIZE;
-                    } else{
-                        novaPosJogador->y += QUAD_SIZE;
-                    }
-                    break;
+                    if ('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                    {
+                        estado->inimigo[i].pos.y += estado->inimigo[i].dy * QUAD_SIZE;
+                        estado->inimigo[i].dy= -1;
+                        novaposinimigo(&estado->inimigo[i]);
 
-                case 65:
-                case 263:
-                     // Mover para esquerda
-                    pos = LARGURA;
-                    for (int j = 0; j < estado->qtdPortais; j++) {
-                            if(estado->posPortais[j].y == novaPosJogador->y && estado->posPortais[j].x <pos){
-                                pos = estado->posPortais[j].x;
-                            }
+                        if('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                        {
+                            estado->inimigo[i].pos.y += estado->inimigo[i].dy * QUAD_SIZE;
+                            estado->inimigo[i].dy=0;
+                            estado->inimigo[i].dx= -guarda_dx;
+                            novaposinimigo(&estado->inimigo[i]);
+                        }
                     }
-                    if(pos!=LARGURA){
-                        novaPosJogador->x = pos-QUAD_SIZE;
-                    } else{
-                        novaPosJogador->x -= QUAD_SIZE;
-                    }
+                }
+                else if (estado->inimigo[i].dy != 0)
+                {
+                    estado->inimigo[i].dy=0;
+                    estado->inimigo[i].dx=-1;
+                    novaposinimigo(&estado->inimigo[i]);
 
-                    break;
+                    if ('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                    {
+                        estado->inimigo[i].pos.x -= estado->inimigo[i].dx * QUAD_SIZE;
+                        estado->inimigo[i].dx=1;
+                        novaposinimigo(&estado->inimigo[i]);
 
-                case 68:
-                case 262:
-                    pos = 0;
-                    for (int j = 0; j < estado->qtdPortais; j++) {
-                            if(estado->posPortais[j].y == novaPosJogador->y && estado->posPortais[j].x >pos){
-                                pos = estado->posPortais[j].x;
-                            }
+                        if('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                        {
+                            estado->inimigo[i].pos.x -= estado->inimigo[i].dx * QUAD_SIZE;
+                            estado->inimigo[i].dx=0;
+                            estado->inimigo[i].dy= -guarda_dy;
+                            novaposinimigo(&estado->inimigo[i]);
+                        }
                     }
-                    if(pos!=0){
-                        novaPosJogador->x = pos+QUAD_SIZE;
-                    } else{
-                        novaPosJogador->x += QUAD_SIZE;
-                    }
-                    break;
+                }
+            }
+        }
+
+    }
+}
+
+void colisaoArmadilhaInimigo(ESTADO *estado)
+{
+    for (int j = 0; j < MAX_INIMIGOS; j++)
+    {
+        if(estado->inimigo[j].vida ==1)
+        {
+            if(('A' == estado->mapa[estado->inimigo[j].pos.y/20][estado->inimigo[j].pos.x/20]))
+            {
+                estado->mapa[estado->inimigo[j].pos.y/20][estado->inimigo[j].pos.x/20] = ' ';
+                estado->posArmadilhas[estado->qtdArmadilhas].x = 0;
+                estado->posArmadilhas[estado->qtdArmadilhas].y = 0;
+                estado->qtdInimigos--;
+                estado->inimigo[j].vida=0;
 
             }
         }
     }
 }
 
-// Fun��o para atualizar o estado do jogo
-ESTADO atualizarEstado(int k, ESTADO estado) {
-    estado.tempo++;
-    Vector2 novaPosJogador = estado.posJogador;
-    Vector2 novaPosMonstros[MAX_MONSTROS];
+void colisaoInimigoTorre(ESTADO *estado)
+{
+     for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if(estado->inimigo[i].vida == 1){
+            if (verificarColisao(estado->inimigo[i].pos, estado->posBase)) {
+                estado->inimigo[i].vida=0;
+                estado->vidas--;
+                estado->qtdInimigos--;
+                i--;
+                break;
+            }
+        }
+    }
+}
 
+void colisaoJogadorInimigo(ESTADO *estado, POSICAO novaPosJogador)
+{
+    for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if(estado->inimigo[i].vida==1){
+            if (verificarColisao(estado->inimigo[i].pos, novaPosJogador))
+            {
+                estado->vidaJogador--;
+                estado->inimigo[i].vida = 0;
+            }
+        }
+    }
+
+}
+
+ESTADO atualizarEstado(ESTADO estado, int ultimasteclas[]) {
+    estado.tempo++;
+    POSICAO novaPosJogador = estado.posJogador;
+    int i;
+    int k = GetKeyPressed();
+    if(estado.menu == 7)cheat(k, ultimasteclas, &estado);//checa últimas 11 teclas pra ver se trapaça funcionou
     getAcao(k, &estado, &novaPosJogador);
 
-    novasposMonstros(&estado, novaPosMonstros);
+    colisaoJogadorInimigo(&estado, novaPosJogador);
+
+    //Atualiza posições dos inimigos
+    if(estado.tempo % VELOCIDADE ==0) {
+        for (i = 0; i < MAX_INIMIGOS; i++){
+            if(estado.inimigo[i].vida == 1) novaposinimigo(&estado.inimigo[i]);
+        }
+    }
 
     colisaoJogadorRecurso(&estado, novaPosJogador);
 
@@ -266,123 +381,77 @@ ESTADO atualizarEstado(int k, ESTADO estado) {
 
     colisaoJogadorParede(&estado, &novaPosJogador);
 
-
-    // Colis�o armadilha/monstro
-    for (int j = 0; j < estado.qtdMonstros; j++) {
-        for (int i = 0; i < MAX_FRUTAS; i++) {
-            if (estado.posArmadilhas[i].x != 0 && estado.posArmadilhas[i].y != 0) {
-                if (verificarColisao(estado.posArmadilhas[i], estado.posMonstros[j])) {
-                    // Monstro e armadilha desaparecem
-                    for (int k = j; k < estado.qtdMonstros - 1; k++) {
-                        estado.posMonstros[k] = estado.posMonstros[k + 1];
-                        estado.indexMonstro[k] = estado.indexMonstro[k + 1];
-                    }
-                    estado.qtdMonstros--;
-                    estado.posArmadilhas[i] = (Vector2){-1, -1};
-                    j--; // Ajustar �ndice ap�s a remo��o
-                    break;
-                }
-            }
-        }
+    if(estado.tempo % VELOCIDADE == 0)
+    {
+        colisaoInimigoParede(&estado);
+        colisaoArmadilhaInimigo(&estado);
+        colisaoInimigoTorre(&estado);
     }
 
-    // Colis�o monstro/torre
-    for (int i = 0; i < estado.qtdMonstros; i++) {
-        if (verificarColisao(estado.posMonstros[i], estado.posBase)) {
-            for (int j = i; j < estado.qtdMonstros - 1; j++) {
-                estado.posMonstros[j] = estado.posMonstros[j + 1];
-                estado.indexMonstro[j] = estado.indexMonstro[j + 1];
-            }
-            printf("matou");
-            estado.qtdMonstros--;
-            estado.vidas--;
-            i--; // Ajustar �ndice ap�s a remo��o
-        }
-    }
+    if (estado.vidas <= 0 || estado.vidaJogador <= 0)
+        estado.derrota = 1;
+    if (estado.qtdInimigos == 0)
+        estado.vitoria = 1;
 
-    if (estado.vidas <= 0)
-        estado.derrota = true;
-    if (estado.qtdMonstros == 0 && estado.tempo>180)
-        estado.vitoria = true;
 
-     //Colis�o jogador/monstro
-    for (int i = 0; i < estado.qtdMonstros - 1; i++) {
-        if (verificarColisao(estado.posMonstros[i], novaPosJogador))estado.derrota = true;
-    }
-
-    // Atualizar posi��o do jogador
     estado.posJogador = novaPosJogador;
-    // Atualizar posi��o dos monstros
-    for (int i = 0; i < estado.qtdMonstros; i++) {
-        estado.posMonstros[i] = novaPosMonstros[i];
-    }
 
-    // Spawn de monstros
-    if (estado.qtdMonstros < MAX_MONSTROS && estado.tempo % 180 == 0) { // Spawn de monstros a cada 180 quadros
-        for (int j = 0; j < MAX_MONSTROS; j++) {
-            if (estado.indexMonstro[j] == -1) {
-                estado.posMonstros[j] = estado.trilha[0]; // Spawn no in�cio da trilha
-                estado.indexMonstro[j] = 0; // Iniciar no primeiro �ndice da trilha
-                estado.qtdMonstros++;
-                break;
-            }
-        }
-    }
 
     return estado;
 }
 
+
 void carregarMapaDeArquivo(ESTADO* estado, const char* caminhoArquivo) {
     FILE* arquivo = fopen(caminhoArquivo, "r");
     if (!arquivo) {
-        perror("Erro ao abrir o arquivo");
+        printf("Erro ao abrir o arquivo");
         exit(EXIT_FAILURE);
     }
-
+    int i, y, j, x;
     // Inicializar valores de estado
-    estado->vidas = 3;
-    estado->vidaJogador = true;
-    estado->qtdMonstros = 0;
-    estado->qtdFrutinhas = 0;
+    estado->qtdInimigos = 0;
+    estado->qtdRecursos = 0;
     estado->qtdPortais = 0;
     estado->qtdParedes = 0;
-    estado->vitoria = false;
-    estado->derrota = false;
+    estado->qtdArmadilhas = 0;
+    estado->vitoria = 0;
+    estado->derrota = 0;
     estado->tempo = 0;
     estado->recursos = 0;
-    estado->comprimentoTrilha = 0;
 
-    memset(estado->trilha, 0, sizeof(estado->trilha));
     memset(estado->posParedes, 0, sizeof(estado->posParedes));
     memset(estado->posPortais, 0, sizeof(estado->posPortais));
-    memset(estado->posMonstros, 0, sizeof(estado->posMonstros));
-    memset(estado->indexMonstro, -1, sizeof(estado->indexMonstro));
-    memset(estado->spawTimes, 0, sizeof(estado->spawTimes));
-    memset(estado->posFrutinhas, 0, sizeof(estado->posFrutinhas));
+    memset(estado->inimigo, 0, sizeof(estado->inimigo));
+    memset(estado->posRecursos, 0, sizeof(estado->posRecursos));
     memset(&estado->posJogador, 0, sizeof(estado->posJogador));
 
-    char mapa[MAP_HEIGHT][MAP_WIDTH] = {0}; // Para armazenar o mapa temporariamente
+    for (i = 0; i < MAP_HEIGHT; i++) {
+        for (j = 0; j < MAP_WIDTH; j++) {
+            estado->mapa[i][j] = ' ';
+        }
+    }
+
     char linha[MAP_WIDTH + 2]; // +2 para o '\n' e '\0'
-    int y = 0;
+    y = 0;
 
     while (fgets(linha, sizeof(linha), arquivo) && y < MAP_HEIGHT) {
-        for (int x = 0; x < MAP_WIDTH && linha[x] != '\n'; x++) {
-            if (linha[x] == ' ') {
-                continue; // Ignorar espaços em branco
-            }
-            mapa[y][x] = linha[x]; // Armazenar o caractere no mapa
-            Vector2 pos = {x * QUAD_SIZE, y * QUAD_SIZE};
+        for (x = 0; x < MAP_WIDTH && linha[x] != '\n'; x++) {
+            estado->mapa[y][x] = linha[x]; // Armazenar o caractere no mapa
+            POSICAO pos = {x * QUAD_SIZE, y * QUAD_SIZE};
             switch (linha[x]) {
                 case 'J':
                     estado->posJogador = pos;
                     break;
                 case 'M':
-                    if (estado->qtdMonstros < MAX_MONSTROS) {
-                        estado->posMonstros[estado->qtdMonstros++] = pos;
-                    }
+                    estado->inimigo[estado->qtdInimigos].pos = pos; ///////////////////////////////////Mexi aqui
+                    estado->inimigo[estado->qtdInimigos].dx= -1;
+                    estado->inimigo[estado->qtdInimigos].dy= 0;
+                    estado->inimigo[estado->qtdInimigos].vida=1;
+                    estado->qtdInimigos++;
+
                     break;
                 case 'R':
-                    estado->posFrutinhas[estado->qtdFrutinhas++] = pos;
+                    estado->posRecursos[estado->qtdRecursos++] = pos;
                     break;
                 case 'H':
                     estado->posPortais[estado->qtdPortais++] = pos;
@@ -393,61 +462,12 @@ void carregarMapaDeArquivo(ESTADO* estado, const char* caminhoArquivo) {
                 case 'S':
                     estado->posBase = pos;
                     break;
-                case 'I':
-                    estado->trilha[estado->comprimentoTrilha++] = pos;
-                    break;
             }
         }
         y++;
     }
 
     fclose(arquivo);
-
-    // Função auxiliar para verificar se a posição está dentro dos limites do mapa
-    int dentroDosLimites(int x, int y) {
-        return x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
-    }
-
-    // Função auxiliar para verificar se a posição já está na trilha
-    int jaNaTrilha(Vector2 pos, Vector2* trilha, int comprimentoTrilha) {
-        for (int i = 0; i < comprimentoTrilha; i++) {
-            if (trilha[i].x == pos.x && trilha[i].y == pos.y) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Encontrar e construir a trilha
-    int dx[] = {0, 0, -1, 1}; // Direções de movimento: cima, baixo, esquerda, direita
-    int dy[] = {-1, 1, 0, 0};
-
-    Vector2 atual = estado->trilha[0];
-    while (true) {
-        int encontrado = false;
-        for (int i = 0; i < 4; i++) {
-            int nx = atual.x / QUAD_SIZE + dx[i];
-            int ny = atual.y / QUAD_SIZE + dy[i];
-            if (dentroDosLimites(nx, ny)) {
-                Vector2 proximo = {nx * QUAD_SIZE, ny * QUAD_SIZE};
-                if (!jaNaTrilha(proximo, estado->trilha, estado->comprimentoTrilha)) {
-                    if (mapa[ny][nx] == 'B') {
-                        estado->trilha[estado->comprimentoTrilha++] = proximo;
-                        encontrado = true;
-                        break;
-                    } else if (mapa[ny][nx] == '.') {
-                        estado->trilha[estado->comprimentoTrilha++] = proximo;
-                        atual = proximo;
-                        encontrado = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if (!encontrado) {
-            break; // Se não encontrou nenhum próximo ponto na trilha, parar a busca
-        }
-    }
 }
 
 void carregaNivel(ESTADO* estado)
@@ -464,37 +484,46 @@ void desenhaRambo(ESTADO *estado) {
     Color PELE = {204, 153, 102, 255};
 
     // Desenhando o boneco com 4 retângulos
-    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y}, (Vector2){QUAD_SIZE, 4}, BLACK);  // Parte preta
-    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 4}, (Vector2){QUAD_SIZE, 3}, RED);    // Parte vermelha
-    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 7}, (Vector2){QUAD_SIZE, 6}, PELE);   // Parte de pele
-    DrawRectangleV((Vector2){estado->posJogador.x, estado->posJogador.y + 13}, (Vector2){QUAD_SIZE, 7}, MARROM); // Parte marrom escuro
+    DrawRectangle(estado->posJogador.x, estado->posJogador.y, QUAD_SIZE, 4, BLACK);  // Parte preta
+    DrawRectangle(estado->posJogador.x, estado->posJogador.y + 4, QUAD_SIZE, 3, RED);    // Parte vermelha
+    DrawRectangle(estado->posJogador.x, estado->posJogador.y + 7, QUAD_SIZE, 6, PELE);   // Parte de pele
+    DrawRectangle(estado->posJogador.x, estado->posJogador.y + 13, QUAD_SIZE, 7, MARROM); // Parte marrom escuro
 
 }
 
-void desenho(ESTADO *estado)
+void desenho(ESTADO *estado, Texture2D texturas[])
 {
-        Texture2D grama = LoadTexture("grama.png");
-        DrawTexture(grama, 0, 0, WHITE);
+        DrawTexture(texturas[2], 0, 0, WHITE);
 
         char text[100];
         sprintf(text, "Fase atual: %d    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Inimigos restantes: %d",
-               estado->nivelatual, estado->recursos, estado->vidas, estado->qtdMonstros);
+               estado->nivelatual, estado->recursos, estado->vidas, estado->qtdInimigos);
 
-        DrawRectangleV(estado->posBase, (Vector2){QUAD_SIZE, QUAD_SIZE}, WHITE);
+        for (int i = 0; i < MAX_INIMIGOS; i++)
+        {
+            if(estado->inimigo[i].vida == 0)
+            {
+                DrawRectangle(estado->inimigo[i].pos.x + 5, estado->inimigo[i].pos.y + 7, 10, 2, WHITE);
+                DrawRectangle(estado->inimigo[i].pos.x + 9, estado->inimigo[i].pos.y + 3, 2, 14, WHITE);
+            }
 
-        for (int i = 0; i < estado->qtdMonstros; i++) {
-            DrawRectangleV(estado->posMonstros[i], (Vector2){QUAD_SIZE, QUAD_SIZE}, RED);
         }
 
+
+
         //desenha recursos
-        Texture2D recursos = LoadTexture("recursos.png");
-        for (int i = 0; i < estado->qtdFrutinhas; i++) {
-            DrawTexture(recursos, estado->posFrutinhas[i].x, estado->posFrutinhas[i].y, WHITE);
+        for (int i = 0; i < estado->qtdRecursos; i++) {
+            DrawTexture(texturas[3], estado->posRecursos[i].x, estado->posRecursos[i].y, WHITE);
+        }
+
+        for (int i = 0; i < MAX_INIMIGOS; i++)
+        {
+            if(estado->inimigo[i].vida == 1)DrawRectangle(estado->inimigo[i].pos.x, estado->inimigo[i].pos.y, QUAD_SIZE, QUAD_SIZE, RED);
         }
 
         //desenha armadilhas
-        for (int i = 0; i < MAX_FRUTAS; i++) {
-            if (estado->posArmadilhas[i].x != 0 && estado->posArmadilhas[i].y != 0) {
+        for (int i = 0; i < estado->qtdArmadilhas; i++) {
+            if(('A' == estado->mapa[estado->posArmadilhas[i].y/20][estado->posArmadilhas[i].x/20])) {
                 DrawRectangle(estado->posArmadilhas[i].x + 8, estado->posArmadilhas[i].y, 4, QUAD_SIZE, DARKGRAY);
                 DrawRectangle(estado->posArmadilhas[i].x , estado->posArmadilhas[i].y + 8, QUAD_SIZE, 4, DARKGRAY);
             }
@@ -504,17 +533,17 @@ void desenho(ESTADO *estado)
         desenhaRambo(estado);
 
         //desenha buracos
-        Texture2D buraco = LoadTexture("buraco.png");
         for (int i = 0; i < estado->qtdPortais; i++) {
-            DrawTexture(buraco, estado->posPortais[i].x, estado->posPortais[i].y, WHITE);
+            DrawTexture(texturas[4], estado->posPortais[i].x, estado->posPortais[i].y, WHITE);
 
         }
 
         //desenho barreiras
-        Texture2D arvores = LoadTexture("arvore.png");
         for (int i = 0; i < estado->qtdParedes; i++) {
-            DrawTexture(arvores, estado->posParedes[i].x, estado->posParedes[i].y, WHITE);
+            DrawTexture(texturas[5], estado->posParedes[i].x, estado->posParedes[i].y, WHITE);
         }
+
+        DrawRectangle(estado->posBase.x, estado->posBase.y, QUAD_SIZE, QUAD_SIZE, WHITE);
 
         DrawText(text, 10, 3, 19, WHITE);
 }
@@ -526,7 +555,7 @@ void novaFase(ESTADO *estado)//funcao para tela entre fases
     if (IsKeyPressed(KEY_ENTER))estado->menu = 7;//continua
 }
 
-int cutscene(ESTADO *estado)
+int cutscene(ESTADO *estado, Texture2D texturas[])
 {
     //Inicializa a tela para a cutscene
     ClearBackground(BLACK);
@@ -537,30 +566,36 @@ int cutscene(ESTADO *estado)
     const char *frase2 = " Fatalmente, a posição desta instalação foi comprometida.\n\n\n        Unidades inimigas foram detectadas ao Leste.";
     const char *frase3 = "  Ela precisará resistir até a chegada de novas tropas.";
     const char *frase4 = "   Agora, resta apenas um homem que pode defendê-la.";
+    const char *avanca = "Precione ENTER para continuar";
 
     // pagina atual da cutscene
 
         switch(estado->pagina)
         {
             case 0:
+                DrawText(avanca, 850, 570, 20, WHITE);
                 break;
 
             case 1:
+                DrawText(avanca, 850, 570, 20, WHITE);
                 DrawText(frase1, 10, 10, 40, WHITE);
                 break;
 
             case 2:
+                DrawText(avanca, 850, 570, 20, WHITE);
                 DrawText(frase1, 10, 10, 40, WHITE);
                 DrawText(frase2, 10, 190, 40, WHITE);
                 break;
 
             case 3:
+                DrawText(avanca, 850, 570, 20, WHITE);
                 DrawText(frase1, 10, 10, 40, WHITE);
                 DrawText(frase2, 10, 190, 40, WHITE);
                 DrawText(frase3, 10, 320, 40, WHITE);
                 break;
 
              case 4:
+                DrawText(avanca, 850, 570, 20, WHITE);
                 DrawText(frase1, 10, 10, 40, WHITE);
                 DrawText(frase2, 10, 190, 40, WHITE);
                 DrawText(frase3, 10, 320, 40, WHITE);
@@ -568,6 +603,12 @@ int cutscene(ESTADO *estado)
                 break;
 
              case 5:
+                DrawTexture(texturas[6], 0, 0, WHITE);
+                DrawText(avanca, 850, 570, 20, BLACK);
+                break;
+
+             case 6:
+                estado->pagina = 0;
                 return 1;
                 break;
         }
@@ -580,15 +621,65 @@ int cutscene(ESTADO *estado)
         return 0;
     }
 
+int cutscenederrota(ESTADO *estado)
+{
+    //Inicializa a tela para a cutscene
+    ClearBackground(BLACK);
 
-void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music playlist[], int musicaAtual) // checa condicao a cada ciclo
+
+    // Texto a ser exibido
+    const char *frase5 = "A base americana não resistiu às ofensivas inimigas.";
+    const char *frase6 = "Os homens que a protegiam foram levados como prisioneiros.";
+    const char *frase7 = "O antigo Boina Verde John Rambo nunca foi encontrado.";
+    const char *avanca = "Precione ENTER para continuar";
+
+    // pagina atual da cutscene
+
+        switch(estado->pagina)
+        {
+            case 0:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                break;
+
+            case 1:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                DrawText(frase5, 10, 10, 40, WHITE);
+                break;
+
+            case 2:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                DrawText(frase5, 10, 10, 40, WHITE);
+                DrawText(frase6, 10, 190, 40, WHITE);
+                break;
+
+            case 3:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                DrawText(frase5, 10, 10, 40, WHITE);
+                DrawText(frase6, 10, 190, 40, WHITE);
+                DrawText(frase7, 10, 320, 40, WHITE);
+                break;
+
+             case 4:
+                return 1;
+                break;
+        }
+
+        // Avança para o próximo passo se a tecla Enter for pressionada
+        if (IsKeyPressed(KEY_ENTER))
+        {
+            estado->pagina++;
+        }
+        return 0;
+    }
+
+void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music playlist[], int musicaAtual, Texture2D texturas[]) // checa condicao a cada ciclo
 {
     switch (estado->menu)
     {
         case 0: // menu inicio
+            estado->pagina = 0;
             *contagemMenu = 3; // número de opções no menu inicial
-            Texture2D imagemmenu = LoadTexture("imagemmenu2.png");
-            DrawTexture(imagemmenu, 0, 0, WHITE);
+            DrawTexture(texturas[0], 0, 0, WHITE);
 
             // Navegação pelo menu
             if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
@@ -605,17 +696,14 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
             if (IsKeyPressed(KEY_ENTER)) {
                 switch (*selecionado) {
                     case 0:
-                        UnloadTexture(imagemmenu); // Descarrega a textura após o uso
                         StopMusicStream(playlist[musicaAtual]);  // Para a música
                         estado->menu = 1;
                         break; // novo jogo
                     case 1:
-                        UnloadTexture(imagemmenu); // Descarrega a textura após o uso
                         StopMusicStream(playlist[musicaAtual]);  // Para a música
                         estado->menu = 2;
                         break; // carregar jogo
                     case 2:
-                        UnloadTexture(imagemmenu); // Descarrega a textura após o uso
                         StopMusicStream(playlist[musicaAtual]);  // Para a música
                         estado->menu = 3;
                         break; // sair
@@ -624,8 +712,10 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
             break;
 
         case 1: // novo jogo
-            if (cutscene(estado) == 1)
+            if (cutscene(estado, texturas) == 1)
             {
+                estado->vidas = 3;
+                estado->vidaJogador = 1;
                 estado->nivelatual = 1;
                 carregaNivel(estado); // reseta o nível
                 estado->menu = 7; // continua o jogo
@@ -649,18 +739,19 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
             novaFase(estado); // função para tela entre fases
             break;
 
+
+
         case 5: // menu de pause
+            DrawTexture(texturas[1], 0, 0, WHITE);
 
-            Texture2D imagempause = LoadTexture("imagempause.png");
-            DrawTexture(imagempause, 0, 0, WHITE);
-
-            *contagemMenu = 5;
+            *contagemMenu = 6; // Atualize o número total de opções
             DrawText("Pausado", 400, 100, 40, WHITE);
             DrawText("Continuar", 400, 200, 40, WHITE);
             DrawText("Carregar Jogo", 400, 260, 40, WHITE);
             DrawText("Salvar Jogo", 400, 320, 40, WHITE);
             DrawText("Voltar ao Menu", 400, 380, 40, WHITE);
-            DrawText("Sair", 400, 440, 40, WHITE);
+            DrawText("Volume", 400, 440, 40, WHITE); // Nova opção de volume
+            DrawText("Sair", 400, 500, 40, WHITE);
 
             // Navegação pelo menu de pause
             if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
@@ -672,32 +763,51 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
                 }
             }
 
-            // Ação baseada na opção selecionada
+            // Exibe e ajusta o volume se a opção de volume estiver selecionada
+            if (*selecionado == 4) {
+                DrawText(TextFormat("%d%%", (int)(estado->volume * 100)), 600, 440, 40, WHITE); // Mostra o volume atual
+
+                // Ajusta o volume
+                if (IsKeyPressed(KEY_RIGHT) && estado->volume < 1.0f) {
+                    estado->volume += 0.05f; // Aumenta o volume
+                    SetMusicVolume(playlist[musicaAtual], estado->volume); // Aplica o volume à música atual na playlist
+                }
+                if (IsKeyPressed(KEY_LEFT) && estado->volume > 0.0f) {
+                    estado->volume -= 0.05f; // Diminui o volume
+                    SetMusicVolume(playlist[musicaAtual], estado->volume); // Aplica o volume à música atual na playlist
+                }
+            }
+
+            // Ação para alternar o estado do menu com a tecla Tab
+            int tab = GetKeyPressed();
+            if(tab == 258)estado->menu = 7; // Alterna o estado do menu
+
             if (IsKeyPressed(KEY_ENTER)) {
                 switch (*selecionado) {
                     case 0:
                         estado->menu = 7;
-                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        *selecionado = 0;
                         break; // continuar jogo
                     case 1:
                         carregarEstado("savegame.txt", estado);
-                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        *selecionado = 0;
                         break; // carregar jogo
                     case 2:
                         salvarEstado("savegame.txt", estado);
-                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        *selecionado = 0;
                         break; // salvar jogo
                     case 3:
                         estado->menu = 0;
-                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        *selecionado = 0;
                         break; // voltar ao menu inicial
-                    case 4:
+                    case 5:
                         estado->menu = 3;
-                        UnloadTexture(imagempause); // Descarrega a textura após o uso
+                        *selecionado = 0;
                         break; // sair
                 }
             }
             break;
+
 
         case 6: // venceu jogo
             ClearBackground(BLACK);
@@ -706,41 +816,57 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
             break;
 
         case 7: // operando normalmente
-            desenho(estado);
+            desenho(estado, texturas);
             break;
 
         case 8: // game over
-            *contagemMenu = 3;
-            ClearBackground(BLACK);
-            DrawText("GAME OVER", 300, 200, 40, WHITE);
-            DrawText("Voltar ao MENU", 300, 270, 40, WHITE);
-            DrawText("Carregar Jogo Salvo", 300, 330, 40, WHITE);
-            DrawText("Reiniciar", 300, 390, 40, WHITE);
+            if (cutscenederrota(estado) == 0)estado->menu = 8; // continua a cutscene
+            else
+            {
+                *contagemMenu = 3;
+                ClearBackground(BLACK);
+                DrawText("GAME OVER", 300, 200, 40, WHITE);
+                DrawText("Voltar ao MENU", 300, 270, 40, WHITE);
+                DrawText("Carregar Jogo Salvo", 300, 330, 40, WHITE);
+                DrawText("Reiniciar", 300, 390, 40, WHITE);
 
-            // Navegação pelo menu de game over
-            if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
-            if (IsKeyPressed(KEY_UP)) *selecionado = (*selecionado - 1 + *contagemMenu) % *contagemMenu;
+                // Navegação pelo menu de game over
+                if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
+                if (IsKeyPressed(KEY_UP)) *selecionado = (*selecionado - 1 + *contagemMenu) % *contagemMenu;
 
-            for (int i = 0; i < *contagemMenu; i++) {
-                if (i == *selecionado) {
-                    DrawText(">", 250, 270 + i * 60, 40, WHITE);
+                for (int i = 0; i < *contagemMenu; i++) {
+                    if (i == *selecionado) {
+                        DrawText(">", 250, 270 + i * 60, 40, WHITE);
+                    }
                 }
-            }
 
-            // Ação baseada na opção selecionada
-            if (IsKeyPressed(KEY_ENTER)) {
-                switch (*selecionado) {
-                    case 0: estado->menu = 0; break; // voltar ao menu inicial
-                    case 1: estado->menu = 2; break; // carregar jogo salvo
-                    case 2: estado->menu = 1; break; // reiniciar jogo
+                // Ação baseada na opção selecionada
+                if (IsKeyPressed(KEY_ENTER)) {
+                    TraceLog(LOG_INFO, "Tecla Enter pressionada! Opção selecionada: %d", *selecionado);
+                    switch (*selecionado) {
+                        case 0: // voltar ao menu inicial
+                            estado->derrota = 0;
+                            estado->menu = 0;
+                            *selecionado = 0;
+                            break;
+                        case 1: // carregar jogo salvo
+                            estado->derrota = 0;
+                            estado->menu = 2;
+                            *selecionado = 0;
+                            break;
+                        case 2: // reiniciar jogo
+                            estado->derrota = 0;
+                            estado->menu = 1;
+                            *selecionado = 0;
+                            break;
+                    }
                 }
             }
             break;
-
     }
 }
 
-selecionaMusica(ESTADO *estado, int *musicaAtual)
+void selecionaMusica(ESTADO *estado, int *musicaAtual)
 {
     switch(estado->menu)
     {
@@ -762,19 +888,32 @@ int main() {
     SetTargetFPS(60);
     int ultimasteclas[10] = {0};
     int contagemMenu;
-    int selecionado;
+    int selecionado = 0;
     int musicaAtual;
 
     ESTADO estado = {0};
     estado.nivelatual = 1;
+    estado.vidas = 3;
+    estado.vidaJogador = 1;
     carregaNivel(&estado);
     estado.menu = 0;
+    estado.pagina = 0;
+    estado.volume = 0.5;
 
     // Inicializa o dispositivo de áudio
     InitAudioDevice();
 
-    Music playlist[10];
 
+    Texture2D texturas[10];
+    texturas[0] = LoadTexture("imagemmenu2.png");//imagem rambo menu principal
+    texturas[1] = LoadTexture("imagempause.png");//imagem pause
+    texturas[2] = LoadTexture("grama.png");//grama
+    texturas[3] = LoadTexture("recursos.png");//caixas
+    texturas[4] = LoadTexture("buraco.png");//tuneis
+    texturas[5] = LoadTexture("arvore.png");//paredes
+    texturas[6] = LoadTexture("tutorial.png");//tutorial
+
+    Music playlist[5];
     playlist[0] = LoadMusicStream("musicamenu.mp3");
     playlist[1] = LoadMusicStream("musicafases.mp3");
     playlist[2] = LoadMusicStream("musicacutscene.mp3");
@@ -784,22 +923,17 @@ int main() {
     while (!WindowShouldClose()) {
 
         selecionaMusica(&estado, &musicaAtual);
-        printf("%d: musica atual", musicaAtual);
 
         // Toca a música
         PlayMusicStream(playlist[musicaAtual]);
 
         UpdateMusicStream(playlist[musicaAtual]);
 
-        int k = GetKeyPressed();
-
-        if (estado.menu != 5)estado = atualizarEstado(k, estado);//se não está pausado, atualiza estads
-
-        cheat(k, ultimasteclas, &estado);//checa últimas 11 teclas pra ver se trapaça funcionou
+        if (estado.menu == 7)estado = atualizarEstado(estado, ultimasteclas);//se não está pausado, atualiza estads
 
         BeginDrawing();
 
-        menuControle(&estado, &contagemMenu, &selecionado, playlist, musicaAtual);//faz as checagens e direcionamentos
+        menuControle(&estado, &contagemMenu, &selecionado, playlist, musicaAtual, texturas);//faz as checagens e direcionamentos
 
         if (estado.vitoria)
         {
@@ -808,8 +942,12 @@ int main() {
             EndDrawing();
             estado.nivelatual ++;
             int e = estado.nivelatual;
+            int v = estado.vidas;
+            int vj = estado.vidaJogador = 1;
             memset(&estado, 0, sizeof(estado));
             estado.nivelatual = e;
+            estado.vidas = v;
+            estado.vidaJogador = vj;
             estado.menu = 4;//passa fase
             if(estado.nivelatual > ULTIMAFASE)//venceu o jogo
             {
@@ -821,10 +959,7 @@ int main() {
 
         if (estado.derrota)
         {
-           printf("derrota");
            estado.menu = 8;
-           carregaNivel(&estado);
-
         }
 
         EndDrawing();
@@ -833,6 +968,14 @@ int main() {
 
     // Fecha o dispositivo de áudio
     CloseAudioDevice();
+    UnloadTexture(texturas[0]);
+    UnloadTexture(texturas[1]);
+    UnloadTexture(texturas[2]);
+    UnloadTexture(texturas[3]);
+    UnloadTexture(texturas[4]);
+    UnloadTexture(texturas[5]);
+    UnloadTexture(texturas[6]);
+
 
     CloseWindow();
     return 0;
