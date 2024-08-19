@@ -12,15 +12,15 @@ W                             W            R               W
 W   J    R                    W                            W
 W                             W                            W
 WWWWHWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
-WS........................................................IW
-WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
-W                             W                            W
-W                             W                            W
-W                             W                            W
-W          R                  W                 R          W
-W                             W                            W
-W                             W                            W
-W                             W                            W
+WS                                                  M M M MW
+WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW W
+W                             W                          WMW
+W                             W                          W W
+W                             W                          WMW
+W                             W                          W W
+W                             W                          WMW
+W                             W                          W W
+W                             W                          WMW
 WWWWWWWHWWWWHWW               W              WWHWWWWHWWWWWWW
 W             W          R    W      R       W             W
 W             W               W              W             W
