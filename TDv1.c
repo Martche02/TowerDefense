@@ -269,13 +269,13 @@ void colisaoInimigoParede(ESTADO *estado)
                     estado->inimigo[i].dy=1;
                     novaposinimigo(&estado->inimigo[i]);
 
-                    if ('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                    if ('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20] || 'H' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
                     {
                         estado->inimigo[i].pos.y += estado->inimigo[i].dy * QUAD_SIZE;
                         estado->inimigo[i].dy= -1;
                         novaposinimigo(&estado->inimigo[i]);
 
-                        if('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                        if('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20] || 'H' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
                         {
                             estado->inimigo[i].pos.y += estado->inimigo[i].dy * QUAD_SIZE;
                             estado->inimigo[i].dy=0;
@@ -290,13 +290,13 @@ void colisaoInimigoParede(ESTADO *estado)
                     estado->inimigo[i].dx=-1;
                     novaposinimigo(&estado->inimigo[i]);
 
-                    if ('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                    if ('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20] || 'H' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
                     {
                         estado->inimigo[i].pos.x -= estado->inimigo[i].dx * QUAD_SIZE;
                         estado->inimigo[i].dx=1;
                         novaposinimigo(&estado->inimigo[i]);
 
-                        if('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
+                        if('W' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20] || 'H' == estado->mapa[estado->inimigo[i].pos.y/20][estado->inimigo[i].pos.x/20])
                         {
                             estado->inimigo[i].pos.x -= estado->inimigo[i].dx * QUAD_SIZE;
                             estado->inimigo[i].dx=0;
@@ -369,7 +369,7 @@ ESTADO atualizarEstado(ESTADO estado, int ultimasteclas[]) {
     colisaoJogadorInimigo(&estado, novaPosJogador);
 
     //Atualiza posições dos inimigos
-    if(estado.tempo % VELOCIDADE ==0) {
+    if(estado.tempo % VELOCIDADE == 0) {
         for (i = 0; i < MAX_INIMIGOS; i++){
             if(estado.inimigo[i].vida == 1) novaposinimigo(&estado.inimigo[i]);
         }
@@ -602,7 +602,7 @@ int cutscene(ESTADO *estado, Texture2D texturas[])
                 DrawText(frase1, 10, 10, 40, WHITE);
                 DrawText(frase2, 10, 190, 40, WHITE);
                 DrawText(frase3, 10, 320, 40, WHITE);
-                DrawText(frase4, 10, 400, 40, WHITE);
+                DrawText(frase4, 20, 400, 40, WHITE);
                 break;
 
              case 5:
