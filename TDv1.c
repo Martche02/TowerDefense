@@ -55,6 +55,7 @@ typedef struct Estado {
     int pagina;
     float volume;
     INIMIGO inimigo[MAX_INIMIGOS];
+    int atingido;
 }ESTADO;
 
 /// Fun��o para verificar colis�o
@@ -319,8 +320,6 @@ void colisaoArmadilhaInimigo(ESTADO *estado)
             if(('A' == estado->mapa[estado->inimigo[j].pos.y/20][estado->inimigo[j].pos.x/20]))
             {
                 estado->mapa[estado->inimigo[j].pos.y/20][estado->inimigo[j].pos.x/20] = ' ';
-                estado->posArmadilhas[estado->qtdArmadilhas].x = 0;
-                estado->posArmadilhas[estado->qtdArmadilhas].y = 0;
                 estado->qtdInimigos--;
                 estado->inimigo[j].vida=0;
 
@@ -338,6 +337,7 @@ void colisaoInimigoTorre(ESTADO *estado)
                 estado->vidas--;
                 estado->qtdInimigos--;
                 i--;
+                estado->atingido = 1;
                 break;
             }
         }
@@ -496,8 +496,8 @@ void desenho(ESTADO *estado, Texture2D texturas[])
         DrawTexture(texturas[2], 0, 0, WHITE);
 
         char text[100];
-        sprintf(text, "Fase atual: %d    Armadilhas: %d    Vidas da torre: %d   Vidas do jogador: 1   Inimigos restantes: %d",
-               estado->nivelatual, estado->recursos, estado->vidas, estado->qtdInimigos);
+        sprintf(text, "Fase atual: %d    Vidas da torre: %d   Vidas do jogador: %d    Armadilhas: %d   Inimigos restantes: %d",
+               estado->nivelatual, estado->vidas, estado->vidaJogador, estado->recursos, estado->qtdInimigos);
 
         for (int i = 0; i < MAX_INIMIGOS; i++)
         {
@@ -545,13 +545,16 @@ void desenho(ESTADO *estado, Texture2D texturas[])
 
         DrawRectangle(estado->posBase.x, estado->posBase.y, QUAD_SIZE, QUAD_SIZE, WHITE);
 
-        DrawText(text, 10, 3, 19, WHITE);
+        DrawText(text, 9, 3, 20, WHITE);
 }
 
-void novaFase(ESTADO *estado)//funcao para tela entre fases
+void novaFase(ESTADO *estado, Texture2D texturas[])//funcao para tela entre fases
 {
-    ClearBackground(BLACK);
-    DrawText("Passou de fase!\n\n\n\nAperte ENTER para continuar", 250, 150, 40, WHITE);
+    DrawTexture(texturas[8], 0, 0, WHITE);
+    char text1[50];
+    sprintf(text1, "Rambo resistiu a %dº onda de inimigos!", estado->nivelatual-1);
+    DrawText(text1, 240, 20, 40, WHITE);
+    DrawText("Precione ENTER para continuar", 850, 570, 20, WHITE);
     if (IsKeyPressed(KEY_ENTER))estado->menu = 7;//continua
 }
 
@@ -629,7 +632,7 @@ int cutscenederrota(ESTADO *estado)
 
     // Texto a ser exibido
     const char *frase5 = "A base americana não resistiu às ofensivas inimigas.";
-    const char *frase6 = "Os homens que a protegiam foram levados como prisioneiros.";
+    const char *frase6 = "Os homens que a protegiam foram levados como\n\n\n                      prisioneiros.";
     const char *frase7 = "O antigo Boina Verde John Rambo nunca foi encontrado.";
     const char *avanca = "Precione ENTER para continuar";
 
@@ -643,20 +646,20 @@ int cutscenederrota(ESTADO *estado)
 
             case 1:
                 DrawText(avanca, 850, 570, 20, WHITE);
-                DrawText(frase5, 10, 10, 40, WHITE);
+                DrawText(frase5, 70, 80, 40, WHITE);
                 break;
 
             case 2:
                 DrawText(avanca, 850, 570, 20, WHITE);
-                DrawText(frase5, 10, 10, 40, WHITE);
-                DrawText(frase6, 10, 190, 40, WHITE);
+                DrawText(frase5, 70, 80, 40, WHITE);
+                DrawText(frase6, 100, 210, 40, WHITE);
                 break;
 
             case 3:
                 DrawText(avanca, 850, 570, 20, WHITE);
-                DrawText(frase5, 10, 10, 40, WHITE);
-                DrawText(frase6, 10, 190, 40, WHITE);
-                DrawText(frase7, 10, 320, 40, WHITE);
+                DrawText(frase5, 70, 80, 40, WHITE);
+                DrawText(frase6, 100, 210, 40, WHITE);
+                DrawText(frase7, 30, 360, 40, WHITE);
                 break;
 
              case 4:
@@ -669,8 +672,60 @@ int cutscenederrota(ESTADO *estado)
         {
             estado->pagina++;
         }
-        return 0;
-    }
+    return 0;
+}
+
+int cutscenefim(ESTADO *estado)
+{
+    //Inicializa a tela para a cutscene
+    ClearBackground(BLACK);
+
+
+    // Texto a ser exibido
+    const char *frase8 = "Apesar de sucessivas incursões inimigas, a guarnição\n\n\n                 americana manteve-se de pé.";
+    const char *frase9 = " O antigo Boina Verde John Rambo foi mais uma vez\n\n\nreconhecido por sua bravura e sua deteminação no\n\n\n                      campo de batalha.";
+    const char *frase10 = "Ele, enfim, pôde voltar para casa.";
+    const char *avanca = "Precione ENTER para continuar";
+
+    // pagina atual da cutscene
+
+        switch(estado->pagina)
+        {
+            case 0:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                break;
+
+            case 1:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                DrawText(frase8, 40, 80, 40, WHITE);
+                break;
+
+            case 2:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                DrawText(frase8, 40, 80, 40, WHITE);
+                DrawText(frase9, 60, 230, 40, WHITE);
+                break;
+
+            case 3:
+                DrawText(avanca, 850, 570, 20, WHITE);
+                DrawText(frase8, 40, 80, 40, WHITE);
+                DrawText(frase9, 60, 230, 40, WHITE);
+                DrawText(frase10, 240, 410, 40, WHITE);
+                break;
+
+             case 4:
+                return 1;
+                break;
+        }
+
+        // Avança para o próximo passo se a tecla Enter for pressionada
+        if (IsKeyPressed(KEY_ENTER))
+        {
+            estado->pagina++;
+        }
+    return 0;
+}
+
 
 void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music playlist[], int musicaAtual, Texture2D texturas[]) // checa condicao a cada ciclo
 {
@@ -736,7 +791,7 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
             break;
 
         case 4: // nova fase
-            novaFase(estado); // função para tela entre fases
+            novaFase(estado, texturas); // função para tela entre fases
             break;
 
 
@@ -810,9 +865,13 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
 
 
         case 6: // venceu jogo
-            ClearBackground(BLACK);
-            DrawText("Parabéns!!!\n\n\n\nAperte ENTER para voltar ao MENU", 300, 200, 40, WHITE);
+            if (cutscenefim(estado) == 0)estado->menu = 6; // continua a cutscene
+            else{
+            DrawTexture(texturas[9], 0, 0, WHITE);
+            DrawText("Parabéns, você concluiu a missão!!!", 270, 20, 40, WHITE);
+            DrawText("Precione ENTER para voltar ao menu", 800, 570, 20, BLACK);
             if (IsKeyPressed(KEY_ENTER)) estado->menu = 0; // retorna ao menu inicial
+            }
             break;
 
         case 7: // operando normalmente
@@ -824,11 +883,11 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
             else
             {
                 *contagemMenu = 3;
-                ClearBackground(BLACK);
-                DrawText("GAME OVER", 300, 200, 40, WHITE);
-                DrawText("Voltar ao MENU", 300, 270, 40, WHITE);
-                DrawText("Carregar Jogo Salvo", 300, 330, 40, WHITE);
-                DrawText("Reiniciar", 300, 390, 40, WHITE);
+                DrawTexture(texturas[7], 0, 0, WHITE);
+                DrawText("GAME OVER", 360, 160, 40, WHITE);
+                DrawText("Voltar ao MENU", 360, 230, 40, WHITE);
+                DrawText("Carregar Jogo Salvo", 360, 290, 40, WHITE);
+                DrawText("Reiniciar", 360, 350, 40, WHITE);
 
                 // Navegação pelo menu de game over
                 if (IsKeyPressed(KEY_DOWN)) *selecionado = (*selecionado + 1) % *contagemMenu;
@@ -836,7 +895,7 @@ void menuControle(ESTADO *estado, int *contagemMenu, int *selecionado, Music pla
 
                 for (int i = 0; i < *contagemMenu; i++) {
                     if (i == *selecionado) {
-                        DrawText(">", 250, 270 + i * 60, 40, WHITE);
+                        DrawText(">", 320, 230 + i * 60, 45, WHITE);
                     }
                 }
 
@@ -912,6 +971,9 @@ int main() {
     texturas[4] = LoadTexture("buraco.png");//tuneis
     texturas[5] = LoadTexture("arvore.png");//paredes
     texturas[6] = LoadTexture("tutorial.png");//tutorial
+    texturas[7] = LoadTexture("bandana.png");
+    texturas[8] = LoadTexture("vitoria.png");
+    texturas[9] = LoadTexture("fim.png");
 
     Music playlist[5];
     playlist[0] = LoadMusicStream("musicamenu.mp3");
@@ -940,10 +1002,12 @@ int main() {
             printf("vitoria");
             ClearBackground(BLACK);
             EndDrawing();
+            if(estado.qtdRecursos == estado.qtdArmadilhas+estado.recursos)estado.vidas++;//se jogador pegou todos os recursos, base ganha uma vida
+            if(estado.atingido == 0)estado.vidaJogador++;//se a base não foi invadida, jogador ganha uma vida
             estado.nivelatual ++;
             int e = estado.nivelatual;
             int v = estado.vidas;
-            int vj = estado.vidaJogador = 1;
+            int vj = estado.vidaJogador;
             memset(&estado, 0, sizeof(estado));
             estado.nivelatual = e;
             estado.vidas = v;
