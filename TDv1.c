@@ -1057,6 +1057,9 @@ int main() {
     UnloadTexture(texturas[4]);
     UnloadTexture(texturas[5]);
     UnloadTexture(texturas[6]);
+    UnloadTexture(texturas[7]);
+    UnloadTexture(texturas[8]);
+    UnloadTexture(texturas[9]);
 
 
     CloseWindow();
