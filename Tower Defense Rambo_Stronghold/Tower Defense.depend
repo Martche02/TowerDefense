@@ -1,0 +1,39 @@
+# depslib dependency file v1.0
+1724256050 source:c:\users\windows 10 pro\onedrive\documentos\block\trabalho td\tower defense\include.c
+
+1724265575 source:c:\users\windows 10 pro\onedrive\documentos\block\trabalho td\tower defense\main.c
+	"raylib.h"
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	"header.h"
+	"funcoes.h"
+
+1724264308 c:\users\windows 10 pro\onedrive\documentos\block\trabalho td\tower defense\header.h
+
+1724265878 c:\users\windows 10 pro\onedrive\documentos\block\trabalho td\tower defense\funcoes.h
+	"raylib.h"
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+
+1724266380 source:c:\users\windows 10 pro\onedrive\documentos\block\trabalho td\tower defense rambo_stronghold\main.c
+	"raylib.h"
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+	"header.h"
+	"funcoes.h"
+
+1724266380 c:\users\windows 10 pro\onedrive\documentos\block\trabalho td\tower defense rambo_stronghold\header.h
+
+1724266380 c:\users\windows 10 pro\onedrive\documentos\block\trabalho td\tower defense rambo_stronghold\funcoes.h
+	"raylib.h"
+	<string.h>
+	<stdio.h>
+	<stdlib.h>
+	<time.h>
+
