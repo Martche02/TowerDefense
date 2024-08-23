@@ -46,7 +46,7 @@ Este projeto é um jogo do tipo Tower Defense, onde o jogador controla John Ramb
 
 ### 4. Menus e Estados do Jogo
 - **Execução**:
-  - O jogo pode estar em 7 estados diferentes: Menu inicial, Menu de pause, Menu de derrota, Início de um novo jogo, Jogando, Tela entre fases e Tela de fim de jogo.
+  - O jogo pode estar em 7 estados diferentes: `Menu inicial`, `Menu de pause`, `Menu de derrota`, `Início de um novo jogo`, `Jogando`, `Tela entre fases` e `Tela de fim de jogo`.
   - Navegação nos menus com setas para cima/baixo e setas laterais para ajustar o volume da música.
   - Cada estado tem texturas e músicas específicas.
   - Menu inicial: Começa um novo jogo, carrega jogo salvo ou sai do jogo.
