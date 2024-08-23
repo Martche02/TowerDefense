@@ -60,8 +60,6 @@ Este projeto é um jogo interativo onde o jogador controla John Rambo, que pode 
 1. Clone este repositório:
    ```bash
    git clone https://github.com/martche02/towerdefense/project.git
-   '''
 2. Execute o jogo:
-   '''bash
+   ```bash
    ./main.exe
-   '''
