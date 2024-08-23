@@ -79,7 +79,7 @@ Para um diagrama detalhado das funções e suas sequências, acesse o [Milanote 
 ## Instalação
 1. Clone este repositório:
    ```bash
-   git clone https://github.com/martche02/towerdefense.git
+   git clone https://github.com/Martche02/TowerDefense.git
 2. Execute o jogo:
    ```bash
    ./main.exe
