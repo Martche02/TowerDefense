@@ -34,7 +34,7 @@ Este projeto é um jogo do tipo Tower Defense, onde o jogador controla John Ramb
 ### 3. Colisões entre Jogador, Objetos e Inimigos
 - **Execução**:
   - O jogador não pode atravessar paredes.
-  - Ao colidir com túneis, o jogador é transportado para o outro lado do túnel.
+  - Ao colidir com túneis, o jogador é transportado para o outro lado do túnel mais distante na direção da colisão (caso não haja, utiliza a saida do próprio túnel).
   - Coleta de recursos ao colidir com eles, aumentando o número de armadilhas disponíveis.
   - Colidir com inimigos resulta na perda de uma vida para ambos.
   - Inimigos são limitados por paredes e túneis, mudando de direção ao encontrá-los.
