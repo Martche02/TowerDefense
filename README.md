@@ -49,13 +49,13 @@ Este projeto é um jogo do tipo Tower Defense, onde o jogador controla John Ramb
   - O jogo pode estar em 7 estados diferentes: `Menu inicial`, `Menu de pause`, `Menu de derrota`, `Início de um novo jogo`, `Jogando`, `Tela entre fases` e `Tela de fim de jogo`.
   - Navegação nos menus com setas para cima/baixo e setas laterais para ajustar o volume da música.
   - Cada estado tem texturas e músicas específicas.
-  -- Menu inicial: Começa um novo jogo, carrega jogo salvo ou sai do jogo.
-  -- Menu de pause: Ativado com a tecla `Tab`, pausa o jogo e permite salvar/carregar o jogo, ajustar o volume, retornar ao menu principal ou sair do jogo.
-  -- Menu de derrota: Aparece ao perder o jogo, oferecendo opções de voltar ao menu principal, começar um novo jogo ou carregar jogo salvo.
-  -- Novo jogo: Reinicia o estado, com cutscene inicial, tutorial e dicas.
-  -- Jogando: Atualiza e desenha o mapa e os objetos.
-  -- Tela entre fases: Aparece ao derrotar todos os inimigos de uma fase; pressionar `Enter` carrega o próximo mapa.
-  -- Tela de fim de jogo: Exibe uma cutscene final e retorna ao menu inicial.
+    - Menu inicial: Começa um novo jogo, carrega jogo salvo ou sai do jogo.
+    - Menu de pause: Ativado com a tecla `Tab`, pausa o jogo e permite salvar/carregar o jogo, ajustar o volume, retornar ao menu principal ou sair do jogo.
+    - Menu de derrota: Aparece ao perder o jogo, oferecendo opções de voltar ao menu principal, começar um novo jogo ou carregar jogo salvo.
+    - Novo jogo: Reinicia o estado, com cutscene inicial, tutorial e dicas.
+    - Jogando: Atualiza e desenha o mapa e os objetos.
+    - Tela entre fases: Aparece ao derrotar todos os inimigos de uma fase; pressionar `Enter` carrega o próximo mapa.
+    - Tela de fim de jogo: Exibe uma cutscene final e retorna ao menu inicial.
 - **Funções utilizadas**: `carregarEstado`, `salvarEstado`, `atualizarEstado`, `carregarMapaDeArquivo`, `novaFase`, `cutsceneinicial`, `cutscenederrota`, `cutscenefim`, `verificaEstado`, `vitoria`.
 - **Estruturas e variáveis utilizadas**: `ESTADO` (controla em qual menu o jogo está), `pagina` (avança cutscenes), `mapa` (matriz que representa o mapa transcrito do arquivo `.txt`).
 
