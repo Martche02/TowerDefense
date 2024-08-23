@@ -52,9 +52,6 @@ Este projeto é um jogo interativo onde o jogador controla John Rambo, que pode 
 3. **Interação**: Colete recursos, evite inimigos e use túneis para se mover rapidamente pelo mapa.
 4. **Progresso**: Derrote todos os inimigos em cada fase para avançar.
 
-## Requisitos
-- Sistema operacional: Windows, macOS, Linux
-- Ferramentas: Compilador C++, SDL (Simple DirectMedia Layer)
 
 ## Instalação
 1. Clone este repositório:
